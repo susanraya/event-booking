@@ -738,14 +738,6 @@ export default class Screen extends ScreenBase {
     this.step.set("seats");
   }
 
-  lineup = [
-    { name: "Neeraj Arya", role: "Vocals, guitar" },
-    { name: "Mukund Ramaswamy", role: "Violin" },
-    { name: "Raman Iyer", role: "Mandolin" },
-    { name: "Viren Solanki", role: "Percussion" },
-    { name: "Maati Baani", role: "Support, 7:30 pm" },
-  ];
-
   tiers = [
     { name: "Front stalls", rows: "A–C", price_minor: 195000 },
     { name: "Stalls", rows: "D–F", price_minor: 145000 },
@@ -840,8 +832,6 @@ export default class Screen extends ScreenBase {
   intervalId = null;
 
   /* ------------------------------ derived ------------------------------- */
-
-  isPublished = computed(() => this.status() === "ready");
 
   stepIndex = computed(() => {
     const s = this.step();

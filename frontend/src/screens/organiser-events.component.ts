@@ -822,7 +822,6 @@ export default class Screen extends ScreenBase {
   field = "rgba(0,0,0,0.25)";
   seatFree = "rgba(255,255,255,0.09)";
 
-  today = "2026-11-04T09:20";
   skeletons = [1, 2, 3, 4];
   currencies = ["INR", "USD", "EUR", "GBP"];
   statusFilters = [
@@ -1542,10 +1541,7 @@ export default class Screen extends ScreenBase {
         body: JSON.stringify({ status: "published" }),
       });
       this.updateSelected({ status: updated.status || "published", note: "Published just now" });
-      this.say(
-        "ok",
-        e.title + " is live. It now appears in public browsing and search.",
-      );
+      this.say("ok", e.title + " is live. It now appears in public browsing and search.");
     } catch (err) {
       if (this.handleUnauthorized(err)) return;
       this.publishError.set(
