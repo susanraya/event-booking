@@ -1697,9 +1697,7 @@ export default class Screen extends ScreenBase {
       if (rowsMessage) {
         this.layoutError.set(rowsMessage);
       } else {
-        this.layoutError.set(
-          e instanceof Error ? e.message : "The layout could not be saved.",
-        );
+        this.layoutError.set(e instanceof Error ? e.message : "The layout could not be saved.");
       }
     }
   }

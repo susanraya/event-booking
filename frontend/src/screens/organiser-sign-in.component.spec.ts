@@ -32,9 +32,14 @@ async function setup() {
   return fixture;
 }
 
-function fillAndSubmit(fixture: ReturnType<typeof TestBed.createComponent>, email: string, password: string) {
+function fillAndSubmit(
+  fixture: ReturnType<typeof TestBed.createComponent>,
+  email: string,
+  password: string,
+) {
   const emailInput: HTMLInputElement = fixture.nativeElement.querySelector("#organiser-email");
-  const passwordInput: HTMLInputElement = fixture.nativeElement.querySelector("#organiser-password");
+  const passwordInput: HTMLInputElement =
+    fixture.nativeElement.querySelector("#organiser-password");
   emailInput.value = email;
   emailInput.dispatchEvent(new Event("input"));
   passwordInput.value = password;
@@ -51,11 +56,12 @@ describe("Organiser sign-in", () => {
   });
 
   it("[AC-031] submits email and password to POST /api/auth/login, stores the JWT and navigates to the dashboard", async () => {
-    (global.fetch as unknown as Mock) = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse(true, 200, { token: "jwt-abc", organiser: { name: "Priya", email: "priya@quorq.ai" } }),
-      );
+    (global.fetch as unknown as Mock) = vi.fn().mockResolvedValue(
+      jsonResponse(true, 200, {
+        token: "jwt-abc",
+        organiser: { name: "Priya", email: "priya@quorq.ai" },
+      }),
+    );
 
     const fixture = await setup();
     const router = TestBed.inject(Router);

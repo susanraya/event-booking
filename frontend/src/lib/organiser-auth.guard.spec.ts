@@ -17,7 +17,11 @@ describe("organiserAuthGuard", () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
-          { path: "organiser-events", component: StubOrganiserScreen, canActivate: [organiserAuthGuard] },
+          {
+            path: "organiser-events",
+            component: StubOrganiserScreen,
+            canActivate: [organiserAuthGuard],
+          },
           { path: "organiser-sign-in", component: StubSignInScreen },
         ]),
       ],
