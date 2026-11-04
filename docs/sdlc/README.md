@@ -5,7 +5,7 @@
 <!-- sdlc:auto:start overview -->
 event booking app: events, seats, bookings, confirmation email
 
-**Documentation version:** v4
+**Documentation version:** v5
 <!-- sdlc:auto:end overview -->
 
 ## Contents
@@ -17,7 +17,7 @@ event booking app: events, seats, bookings, confirmation email
 | [Architecture](architecture/README.md) | 9 entries |
 | [Development](development/README.md) | 33 entries |
 | [Testing](testing/README.md) | 1 entry |
-| [Deployment](deployment/README.md) | 1 entry |
+| [Deployment](deployment/README.md) | 3 entries |
 | [Maintenance](maintenance/README.md) | 1 entry |
 | [Data model](architecture/data-model.md) | generated |
 | [API (OpenAPI)](architecture/api/openapi.yaml) | generated |
@@ -29,9 +29,9 @@ event booking app: events, seats, bookings, confirmation email
 | [Tests](testing/test-cases.md) | 0 tests |
 | [Deployment guide](deployment/deployment-guide.md) | deployed |
 | [Runbook](deployment/runbook.md) | deployed |
-| [Release notes](deployment/release-notes.md) | 1 release |
+| [Release notes](deployment/release-notes.md) | 2 releases |
 | [Traceability matrix](traceability-matrix.md) | 21 requirements |
-| [Changelog](CHANGELOG.md) | 4 versions |
+| [Changelog](CHANGELOG.md) | 5 versions |
 <!-- sdlc:auto:end contents -->
 
 ## Open gaps
@@ -83,12 +83,15 @@ event booking app: events, seats, bookings, confirmation email
 
 ### Deployment
 
-- Deployment date/time not provided.
-- No approver or responsible party recorded for this release.
-- No release notes or changelog indicating which requirements (US-001..US-021) or tickets are included in version 3ccd7131dd04 -- cannot establish related_ids traceability.
-- Environment type (staging vs. production) not specified for the given URLs.
-- No rollback plan, deployment method, or infrastructure details (e.g., CI/CD pipeline, deployment strategy) recorded.
-- No post-deployment verification, smoke-test, or monitoring results recorded.
+- No deployment date/timestamp provided for this release.
+- No record of who approved or triggered the deployment.
+- No mapping provided from version 3ccd7131dd04 to specific requirement IDs (US-001 through US-021), so it is unknown which features are confirmed live in this version.
+- No release notes or changelog describing what changed in this deployment.
+- No rollback plan or previous-version reference provided.
+- No post-deployment verification, health-check, or monitoring results provided.
+- URL uses an 'amplifyapp.local' pattern suggesting a possibly non-production/sandbox domain; not confirmed whether this is the permanent production address.
+- URL uses an 'awsapprunner.local' pattern suggesting a possibly non-production/sandbox domain; not confirmed whether this is the permanent production address.
+- No confirmation of which backend capabilities (events, seats, bookings, confirmation email) are live and reachable at this endpoint.
 
 ### Maintenance
 
