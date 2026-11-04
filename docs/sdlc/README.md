@@ -5,7 +5,7 @@
 <!-- sdlc:auto:start overview -->
 event booking app: events, seats, bookings, confirmation email
 
-**Documentation version:** v1
+**Documentation version:** v2
 <!-- sdlc:auto:end overview -->
 
 ## Contents
@@ -14,14 +14,14 @@ event booking app: events, seats, bookings, confirmation email
 | Document | State |
 |---|---|
 | [Requirements](requirements/README.md) | v1 approved |
-| [Architecture](architecture/README.md) | 1 entry |
+| [Architecture](architecture/README.md) | 9 entries |
 | [Development](development/README.md) | 1 entry |
 | [Testing](testing/README.md) | 1 entry |
 | [Deployment](deployment/README.md) | 1 entry |
 | [Maintenance](maintenance/README.md) | 1 entry |
-| [Data model](architecture/data-model.md) | not generated yet |
-| [API (OpenAPI)](architecture/api/openapi.yaml) | not generated yet |
-| [Decisions (ADRs)](architecture/adr/README.md) | 0 decisions |
+| [Data model](architecture/data-model.md) | generated |
+| [API (OpenAPI)](architecture/api/openapi.yaml) | generated |
+| [Decisions (ADRs)](architecture/adr/README.md) | 4 decisions |
 | [Sprint plan](development/sprint-plan.md) | not generated yet |
 | [Developer guide](development/developer-guide.md) | not generated yet |
 | [API reference](development/api-reference.md) | 0 routes |
@@ -31,7 +31,7 @@ event booking app: events, seats, bookings, confirmation email
 | [Runbook](deployment/runbook.md) | not deployed yet |
 | [Release notes](deployment/release-notes.md) | 0 releases |
 | [Traceability matrix](traceability-matrix.md) | 21 requirements |
-| [Changelog](CHANGELOG.md) | 1 version |
+| [Changelog](CHANGELOG.md) | 2 versions |
 <!-- sdlc:auto:end contents -->
 
 ## Open gaps
@@ -51,8 +51,11 @@ event booking app: events, seats, bookings, confirmation email
 
 ### Architecture
 
-- Architecture phase has not started -- no design artifacts, ADRs, or diagrams available to summarise.
-- Key open design questions flagged by requirements (e.g. concrete seat-locking mechanism satisfying NFR-001, data model for seats/bookings/events, DPDP deletion/anonymisation mechanism, consent-withdrawal flow) remain unanswered pending architecture work.
+- Full NFR/AC catalogue is not included in this input -- only the IDs cited inline (e.g. NFR-001, NFR-003/004/005/008/009/010, AC-001 to AC-052) are known; their full text is not available to this documentation phase.
+- No explicit statement of how 'paid-but-settled-offline' payment status is tracked or reconciled beyond being mentioned once -- payment settlement workflow is unclear.
+- The mechanism that actually expires abandoned locks (scheduled job, lazy check-on-read, DB TTL, etc.) is not specified.
+- No explicit field or mechanism on audit_log (or elsewhere) documents how/when the 180-day retention is enforced (e.g. scheduled purge job) -- the retention policy is stated at the summary level only.
+- Rationale given for each stack choice is high-level (feature fit, compliance fit) -- no cost, performance-benchmark, or team-skill comparison against the named alternatives is included in this input.
 
 ### Development
 

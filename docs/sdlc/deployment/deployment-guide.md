@@ -7,7 +7,13 @@ Pushes to `main` run `.github/workflows/deploy.yml`, which builds the API image 
 <!-- sdlc:auto:end how-it-deploys -->
 
 <!-- sdlc:auto:start environments -->
-_No environments recorded._
+| Name | Service | Runtime | Scaling | Environment |
+|---|---|---|---|---|
+| Web App (CloudFront + S3) | Static hosting + CDN | Angular 22 build artifacts | CDN edge, static | dev |
+| Backend API (ECS Fargate) | Containerised Spring Boot | Spring Boot 4.1 on JVM | 1-2 tasks, low concurrency | dev |
+| PostgreSQL (RDS) | Managed relational DB | PostgreSQL 16 | Single instance, small | dev |
+| Email (Amazon SES SMTP) | Transactional email | SES SMTP endpoint | On-demand | dev |
+| Logs (CloudWatch) | Log storage | CloudWatch Logs | 180-day retention | dev |
 <!-- sdlc:auto:end environments -->
 
 <!-- sdlc:auto:start live -->
@@ -15,5 +21,16 @@ _Not deployed yet._
 <!-- sdlc:auto:end live -->
 
 <!-- sdlc:auto:start topology -->
-_No deployment topology recorded._
+```mermaid
+graph LR
+  n_Web_App__CloudFront___S3_["Web App (CloudFront + S3)<br/>Static hosting + CDN"]
+  n_Backend_API__ECS_Fargate_["Backend API (ECS Fargate)<br/>Containerised Spring Boot"]
+  n_PostgreSQL__RDS_["PostgreSQL (RDS)<br/>Managed relational DB"]
+  n_Email__Amazon_SES_SMTP_["Email (Amazon SES SMTP)<br/>Transactional email"]
+  n_Logs__CloudWatch_["Logs (CloudWatch)<br/>Log storage"]
+  n_Web_App__CloudFront___S3_ -->|"HTTPS"| n_Backend_API__ECS_Fargate_
+  n_Backend_API__ECS_Fargate_ -->|"TLS/5432"| n_PostgreSQL__RDS_
+  n_Backend_API__ECS_Fargate_ -->|"SMTP over TLS"| n_Email__Amazon_SES_SMTP_
+  n_Backend_API__ECS_Fargate_ -->|"HTTPS"| n_Logs__CloudWatch_
+```
 <!-- sdlc:auto:end topology -->

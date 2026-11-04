@@ -2,6 +2,480 @@
 openapi: 3.1.0
 info:
   title: Event booking
-  version: architecture-v0
+  version: architecture-v1
   description: Designed API from the approved architecture (not extracted from code).
-paths: {}
+paths:
+  /api/auth/login:
+    post:
+      summary: Organiser sign-in; generic error on failure (AC-031, AC-032, NFR-009).
+      description: Organiser sign-in; generic error on failure (AC-031, AC-032, NFR-009).
+      operationId: post_api_auth_login
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{email, password}'
+      responses:
+        '200':
+          description: 200 {jwt} / 401 generic error
+  /api/bookings:
+    post:
+      summary: Create guest booking from a hold token with contact details, explicit
+        consent and adult confirmation; generates referenc
+      description: Create guest booking from a hold token with contact details, explicit
+        consent and adult confirmation; generates reference + QR, marks seats booked,
+        triggers confirmation email (AC-015 to AC-024).
+      operationId: post_api_bookings
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{holdToken, name, email, phone, consentGiven, adultConfirmed}'
+      responses:
+        '200':
+          description: 201 {reference, seats, qr} / 400 validation / 409 lock-expired
+  /api/bookings/cancel:
+    post:
+      summary: Cancel a retrieved booking where policy permits, release seats, send
+        cancellation email (AC-028 to AC-030).
+      description: Cancel a retrieved booking where policy permits, release seats,
+        send cancellation email (AC-028 to AC-030).
+      operationId: post_api_bookings_cancel
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{reference, email}'
+      responses:
+        '200':
+          description: 200 cancelled / 409 not-permitted
+      security:
+      - bearerAuth: []
+  /api/bookings/lookup:
+    post:
+      summary: Retrieve a booking by reference + email; not-found reveals nothing
+        (AC-026, AC-027, NFR-008).
+      description: Retrieve a booking by reference + email; not-found reveals nothing
+        (AC-026, AC-027, NFR-008).
+      operationId: post_api_bookings_lookup
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{reference, email}'
+      responses:
+        '200':
+          description: 200 booking detail / 404 not-found
+      security:
+      - bearerAuth: []
+  /api/bookings/withdraw-consent:
+    post:
+      summary: Withdraw consent / request deletion via the booking-management flow;
+        deletes or anonymises personal data (AC-051, AC-052
+      description: Withdraw consent / request deletion via the booking-management
+        flow; deletes or anonymises personal data (AC-051, AC-052).
+      operationId: post_api_bookings_withdraw_consent
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{reference, email}'
+      responses:
+        '200':
+          description: 200 actioned
+      security:
+      - bearerAuth: []
+  /api/events:
+    get:
+      summary: List published events with optional keyword search over title and venue
+        (AC-001, AC-004, AC-005).
+      description: List published events with optional keyword search over title and
+        venue (AC-001, AC-004, AC-005).
+      operationId: get_api_events
+      parameters: []
+      responses:
+        '200':
+          description: 200 array of published event summaries
+  /api/events/{id}:
+    get:
+      summary: Public event detail incl. price or free; not-available if unpublished
+        (AC-006, AC-008).
+      description: Public event detail incl. price or free; not-available if unpublished
+        (AC-006, AC-008).
+      operationId: get_api_events_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 200 event detail / 404 not-available
+  /api/events/{id}/checkin:
+    post:
+      summary: Validate a scanned QR token and check in once; warns if used, invalid,
+        cancelled or wrong event (AC-047 to AC-050).
+      description: Validate a scanned QR token and check in once; warns if used, invalid,
+        cancelled or wrong event (AC-047 to AC-050).
+      operationId: post_api_events_id_checkin
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{qrToken}'
+      responses:
+        '200':
+          description: 200 valid-checked-in / 409 already-used / 422 invalid
+      security:
+      - bearerAuth: []
+  /api/events/{id}/locks:
+    post:
+      summary: Lock selected seats for checkout, returns a hold token and expiry;
+        conflict if any seat already taken (AC-012, AC-013).
+      description: Lock selected seats for checkout, returns a hold token and expiry;
+        conflict if any seat already taken (AC-012, AC-013).
+      operationId: post_api_events_id_locks
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{seatIds:[...]}'
+      responses:
+        '200':
+          description: 201 {holdToken, expiresAt} / 409 seat-unavailable
+  /api/events/{id}/seats:
+    get:
+      summary: Seating layout with per-seat availability (AC-009, AC-011).
+      description: Seating layout with per-seat availability (AC-009, AC-011).
+      operationId: get_api_events_id_seats
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 200 seats with status
+  /api/organiser/events:
+    get:
+      summary: Organiser dashboard listing events with status and date/time (AC-043).
+      description: Organiser dashboard listing events with status and date/time (AC-043).
+      operationId: get_api_organiser_events
+      parameters: []
+      responses:
+        '200':
+          description: 200 events
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a draft event (AC-034, AC-036).
+      description: Create a draft event (AC-034, AC-036).
+      operationId: post_api_organiser_events
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{title, description, startDatetime, venue}'
+      responses:
+        '200':
+          description: 201 event / 400 validation
+      security:
+      - bearerAuth: []
+  /api/organiser/events/{id}:
+    put:
+      summary: Edit event details, pricing/free flag, and publish/unpublish (AC-035,
+        AC-039 to AC-042).
+      description: Edit event details, pricing/free flag, and publish/unpublish (AC-035,
+        AC-039 to AC-042).
+      operationId: put_api_organiser_events_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{fields..., status}'
+      responses:
+        '200':
+          description: 200 event / 400 validation
+      security:
+      - bearerAuth: []
+  /api/organiser/events/{id}/bookings:
+    get:
+      summary: View and search an event's bookings by name, email or reference (AC-045,
+        AC-046).
+      description: View and search an event's bookings by name, email or reference
+        (AC-045, AC-046).
+      operationId: get_api_organiser_events_id_bookings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 200 bookings
+      security:
+      - bearerAuth: []
+  /api/organiser/events/{id}/layout:
+    put:
+      summary: Define/update seating layout rows and seats (AC-037, AC-038).
+      description: Define/update seating layout rows and seats (AC-037, AC-038).
+      operationId: put_api_organiser_events_id_layout
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{rows:[{label, seatCount, priceMinor}]}'
+      responses:
+        '200':
+          description: 200 layout
+      security:
+      - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    organiser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        password_hash:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - email
+      - password_hash
+      - created_at
+    event:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organiser_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        start_datetime:
+          type: string
+          format: date-time
+        venue:
+          type: string
+        is_free:
+          type: boolean
+        price_minor:
+          type: integer
+        currency:
+          type: string
+        status:
+          type: string
+        cancellation_policy:
+          type: string
+        search_tsv:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - organiser_id
+      - title
+      - start_datetime
+      - venue
+      - is_free
+      - status
+      - created_at
+    seat:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        row_label:
+          type: string
+        seat_number:
+          type: integer
+        price_minor:
+          type: integer
+        status:
+          type: string
+      required:
+      - id
+      - event_id
+      - row_label
+      - seat_number
+      - status
+    seat_lock:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        seat_id:
+          type: string
+          format: uuid
+        hold_token:
+          type: string
+          format: uuid
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - seat_id
+      - hold_token
+      - expires_at
+      - created_at
+    booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+        event_id:
+          type: string
+          format: uuid
+        guest_name:
+          type: string
+        guest_email:
+          type: string
+        guest_phone:
+          type: string
+        status:
+          type: string
+        qr_token:
+          type: string
+          format: uuid
+        checked_in:
+          type: boolean
+        checked_in_at:
+          type: string
+          format: date-time
+        consent_given:
+          type: boolean
+        consent_at:
+          type: string
+          format: date-time
+        consent_notice_version:
+          type: string
+        adult_confirmed:
+          type: boolean
+        anonymised:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - reference
+      - event_id
+      - status
+      - qr_token
+      - checked_in
+      - consent_given
+      - adult_confirmed
+      - anonymised
+      - created_at
+    booking_seat:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        booking_id:
+          type: string
+          format: uuid
+        seat_id:
+          type: string
+          format: uuid
+      required:
+      - id
+      - booking_id
+      - seat_id
+    audit_log:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        entity_type:
+          type: string
+        entity_id:
+          type: string
+        actor:
+          type: string
+        ip_address:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - action
+      - created_at
