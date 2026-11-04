@@ -1,10 +1,14 @@
 package app.api;
 
 import app.Stubs;
+import app.service.EventResponse;
+import app.service.EventService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiController {
 
   private final AuthService authService;
+  private final EventService eventService;
 
-  public ApiController(AuthService authService) {
+  public ApiController(AuthService authService, EventService eventService) {
     this.authService = authService;
+    this.eventService = eventService;
   }
 
   /**
@@ -31,14 +37,14 @@ public class ApiController {
    * AC-005).
    */
   @GetMapping("/api/events")
-  public Map<String, String> getApiEvents() {
-    return Stubs.notImplemented("GET /api/events");
+  public List<EventResponse> getApiEvents() {
+    return eventService.listPublishedEvents();
   }
 
   /** Public event detail incl. price or free; not-available if unpublished (AC-006, AC-008). */
   @GetMapping("/api/events/{id}")
-  public Map<String, String> getApiEventsById() {
-    return Stubs.notImplemented("GET /api/events/{id}");
+  public EventResponse getApiEventsById(@PathVariable String id) {
+    return eventService.getPublishedEvent(id);
   }
 
   /** Seating layout with per-seat availability (AC-009, AC-011). */

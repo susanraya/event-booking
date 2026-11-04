@@ -6,6 +6,7 @@ import { FormsModule } from "@angular/forms";
 import { ScreenBase } from "@/lib/screen-base";
 import { UI_KIT } from "@/lib/ui";
 import { clearToken } from "@/lib/auth";
+import { apiFetch, ApiError } from "@/lib/api";
 const template = `
 <div class="velvet min-h-screen w-full"
      [style.background-color]="brand.backgroundColor"
@@ -108,7 +109,16 @@ const template = `
 
         <hr uiSeparator [style.border-color]="line" />
 
-        @if (loading()) {
+        @if (loadError() && !loading()) {
+          <div class="px-4 py-6">
+            <ui-empty title="Could not load your events" [description]="loadError()">
+              <button uiButton variant="secondary" type="button" class="border" (click)="refresh()"
+                      [style.background-color]="panel2" [style.border-color]="line" [style.color]="brand.primaryColor">
+                Try again
+              </button>
+            </ui-empty>
+          </div>
+        } @else if (loading()) {
           <ul class="divide-y" [style.border-color]="line">
             @for (s of skeletons; track s) {
               <li class="px-5 py-5">
@@ -855,16 +865,16 @@ export default class Screen extends ScreenBase {
   /* ---------- state ---------- */
   query = signal("");
   statusFilter = signal("all");
-  loading = signal(false);
+  loading = signal(true);
   stale = signal(true);
-  syncedLabel = signal("Last synced 09:04");
+  syncedLabel = signal("Not yet synced");
   flash = signal(null);
   saving = signal(false);
 
   mode = signal("edit");
   tab = signal("details");
-  selectedId = signal("evt_7142");
-  prevSelectedId = signal("evt_7142");
+  selectedId = signal(null);
+  prevSelectedId = signal(null);
 
   errors = signal({});
   publishError = signal("");
@@ -893,432 +903,64 @@ export default class Screen extends ScreenBase {
 
   bookingQuery = signal("");
 
-  events = signal([
-    {
-      id: "evt_7142",
-      title: "Mehfil: Begum Akhtar Centenary",
-      description:
-        "An evening of thumri, dadra and ghazal marking a hundred years of Begum Akhtar. Vocals by Shubha Mudgal, sarangi by Murad Ali Khan. Doors at 7:00 PM, two sets with a twenty-minute interval.",
-      start_datetime: "2026-11-14T19:30",
-      venue: "Royal Opera House, Mumbai",
-      is_free: false,
-      price_minor: 180000,
-      currency: "INR",
-      status: "published",
-      cancellation_policy:
-        "Free cancellation up to 48 hours before the start. After that the seat is released but the amount is not returned.",
-      note: "Published 26 Oct",
+  events = signal([]);
+  loadError = signal("");
+
+  constructor() {
+    super();
+    this.loadEvents();
+    // AC-040: marking an event free clears the price so a stale number is never saved
+    // alongside isFree.
+    effect(() => {
+      if (this.pIsFree()) this.pPrice.set(0);
+    });
+  }
+
+  toLocalEvent(e) {
+    return {
+      id: e.id,
+      title: e.title,
+      description: e.description || "",
+      start_datetime: e.start_datetime,
+      venue: e.venue,
+      is_free: !!e.is_free,
+      price_minor: e.price_minor || 0,
+      currency: e.currency || "INR",
+      status: e.status || "draft",
+      cancellation_policy: e.cancellation_policy || "",
+      note: "",
       mine: true,
-      held: ["B 2", "B 3"],
-      rows: [
-        { key: "a7142", row_label: "A", seats: 14 },
-        { key: "b7142", row_label: "B", seats: 14 },
-        { key: "c7142", row_label: "C", seats: 14 },
-        { key: "d7142", row_label: "D", seats: 14 },
-        { key: "e7142", row_label: "E", seats: 14 },
-        { key: "f7142", row_label: "F", seats: 14 },
-        { key: "g7142", row_label: "G", seats: 12 },
-        { key: "h7142", row_label: "H", seats: 12 },
-      ],
-      bookings: [
-        {
-          reference: "MHF-7QX4D2",
-          guest_name: "Aarav Mehta",
-          guest_email: "aarav.mehta@gmail.com",
-          guest_phone: "+91 98201 44312",
-          seats: ["A 4", "A 5"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-28T11:04",
-        },
-        {
-          reference: "MHF-2KD9P7",
-          guest_name: "Sharmila Iyer",
-          guest_email: "s.iyer@fastmail.in",
-          guest_phone: "+91 98675 20918",
-          seats: ["C 11", "C 12", "C 13"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-29T18:42",
-        },
-        {
-          reference: "MHF-8LT3VQ",
-          guest_name: "Rustom Daruwala",
-          guest_email: "rustom.d@outlook.com",
-          guest_phone: "+91 99302 77810",
-          seats: ["B 7"],
-          status: "cancelled",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-30T09:15",
-        },
-        {
-          reference: "MHF-5NC6HJ",
-          guest_name: "Nandini Rao",
-          guest_email: "nandini.rao@hotmail.com",
-          guest_phone: "+91 90043 11227",
-          seats: ["D 1", "D 2"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-31T16:20",
-        },
-        {
-          reference: "MHF-9VB1RK",
-          guest_name: "Imran Qureshi",
-          guest_email: "imran.q@zoho.com",
-          guest_phone: "+91 88280 65509",
-          seats: ["F 9", "F 10", "F 11", "F 12"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-11-01T20:27",
-        },
-        {
-          reference: "MHF-3PW8ZE",
-          guest_name: "Leela Krishnan",
-          guest_email: "leela.k@gmail.com",
-          guest_phone: "+91 93440 10982",
-          seats: ["G 3"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-11-02T07:51",
-        },
-        {
-          reference: "MHF-6HD2TA",
-          guest_name: "Vikram Sethi",
-          guest_email: "vikram.sethi@live.com",
-          guest_phone: "+91 98100 48276",
-          seats: ["A 11", "A 12"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-11-03T13:30",
-        },
-        {
-          reference: "MHF-4ZQ7MN",
-          guest_name: "Fatima Shaikh",
-          guest_email: "fatima.shaikh@gmail.com",
-          guest_phone: "+91 70212 33940",
-          seats: ["E 6", "E 7"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-11-03T22:05",
-        },
-      ],
-    },
-    {
-      id: "evt_7128",
-      title: "Jazz by the Backwaters",
-      description:
-        "The Kochi Quintet play standards and Malayalam folk re-workings on the palace lawn, with the tide coming in behind the band. Seating is on cane chairs; the lawn is level and step-free.",
-      start_datetime: "2026-11-08T20:00",
-      venue: "Bolgatty Palace Lawn, Kochi",
-      is_free: false,
-      price_minor: 240000,
-      currency: "INR",
-      status: "published",
-      cancellation_policy:
-        "Cancellation up to 24 hours before the start releases the seat. The event runs rain or shine.",
-      note: "Published 2 Oct",
-      mine: true,
-      held: ["D 5"],
-      rows: [
-        { key: "a7128", row_label: "A", seats: 12 },
-        { key: "b7128", row_label: "B", seats: 12 },
-        { key: "c7128", row_label: "C", seats: 12 },
-        { key: "d7128", row_label: "D", seats: 12 },
-        { key: "e7128", row_label: "E", seats: 12 },
-        { key: "f7128", row_label: "F", seats: 12 },
-      ],
-      bookings: [
-        {
-          reference: "JBB-1RK5WD",
-          guest_name: "Meera Pillai",
-          guest_email: "meera.pillai@gmail.com",
-          guest_phone: "+91 94470 33218",
-          seats: ["A 1", "A 2"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-12T10:11",
-        },
-        {
-          reference: "JBB-7TG4CX",
-          guest_name: "Thomas Varghese",
-          guest_email: "t.varghese@rediffmail.com",
-          guest_phone: "+91 98954 66027",
-          seats: ["B 3", "B 4", "B 5"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-19T15:48",
-        },
-        {
-          reference: "JBB-2MN9QB",
-          guest_name: "Anjali Nair",
-          guest_email: "anjali.nair@proton.me",
-          guest_phone: "+91 85890 71204",
-          seats: ["C 6"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-25T21:02",
-        },
-        {
-          reference: "JBB-5WD8LF",
-          guest_name: "Gautam Bhatt",
-          guest_email: "gautam.bhatt@gmail.com",
-          guest_phone: "+91 99204 85511",
-          seats: ["E 9", "E 10"],
-          status: "cancelled",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-30T12:33",
-        },
-        {
-          reference: "JBB-9CZ2HV",
-          guest_name: "Rhea D Souza",
-          guest_email: "rhea.dsouza@yahoo.in",
-          guest_phone: "+91 70259 41836",
-          seats: ["F 1", "F 2"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-11-02T09:27",
-        },
-      ],
-    },
-    {
-      id: "evt_7139",
-      title: "Bandish and Brass: Kolkata Quartet",
-      description:
-        "Khayal bandishes rearranged for trumpet, trombone, tuba and tabla. One continuous set of ninety minutes, no interval.",
-      start_datetime: "2026-11-21T18:00",
-      venue: "G. D. Birla Sabhagar, Kolkata",
-      is_free: false,
-      price_minor: 95000,
-      currency: "INR",
-      status: "published",
-      cancellation_policy:
-        "Seats may be released any time before the doors open. Amounts are settled directly with the box office.",
-      note: "Published 30 Oct",
-      mine: true,
-      held: [],
-      rows: [
-        { key: "a7139", row_label: "A", seats: 10 },
-        { key: "b7139", row_label: "B", seats: 10 },
-        { key: "c7139", row_label: "C", seats: 10 },
-        { key: "d7139", row_label: "D", seats: 10 },
-      ],
-      bookings: [
-        {
-          reference: "BRB-4KP7DS",
-          guest_name: "Debjani Ghosh",
-          guest_email: "debjani.ghosh@gmail.com",
-          guest_phone: "+91 98300 19457",
-          seats: ["A 3", "A 4"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-11-01T17:14",
-        },
-        {
-          reference: "BRB-8HJ3NW",
-          guest_name: "Arnab Sen",
-          guest_email: "arnab.sen@outlook.in",
-          guest_phone: "+91 90733 28860",
-          seats: ["C 7"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-11-03T08:39",
-        },
-      ],
-    },
-    {
-      id: "evt_7151",
-      title: "Dawn Raga at Nandi Hills",
-      description:
-        "Bhairavi at first light, played on bansuri by Praveen Godkhindi. Gates at 5:00 AM, blankets provided, the music ends as the sun clears the ridge.",
-      start_datetime: "2026-12-06T05:45",
-      venue: "Nandi Hills Amphitheatre, Bengaluru",
-      is_free: true,
-      price_minor: 0,
-      currency: "INR",
-      status: "draft",
-      cancellation_policy:
-        "Free entry. Release your seat if plans change so someone on the waiting list can take it.",
-      note: "Draft since 22 Oct",
-      mine: true,
-      held: [],
-      rows: [
-        { key: "a7151", row_label: "A", seats: 20 },
-        { key: "b7151", row_label: "B", seats: 20 },
-        { key: "c7151", row_label: "C", seats: 20 },
-      ],
-      bookings: [],
-    },
-    {
-      id: "evt_7119",
-      title: "Qawwali Night: Nizami Brothers",
-      description:
-        "A full qawwali sitting in the fort courtyard, with the party of nine on a raised platform. Carpet seating in front, chairs behind.",
-      start_datetime: "2026-10-29T19:30",
-      venue: "Purana Qila, New Delhi",
-      is_free: false,
-      price_minor: 120000,
-      currency: "INR",
-      status: "draft",
-      cancellation_policy:
-        "Cancellation up to 72 hours before the start. The courtyard is uncovered and the event may be moved for weather.",
-      note: "Unpublished 24 Oct, hidden from the public",
-      mine: true,
-      held: [],
-      rows: [
-        { key: "a7119", row_label: "A", seats: 16 },
-        { key: "b7119", row_label: "B", seats: 16 },
-        { key: "c7119", row_label: "C", seats: 16 },
-        { key: "d7119", row_label: "D", seats: 16 },
-        { key: "e7119", row_label: "E", seats: 16 },
-      ],
-      bookings: [
-        {
-          reference: "QWL-6DF2PK",
-          guest_name: "Zoya Hussain",
-          guest_email: "zoya.hussain@gmail.com",
-          guest_phone: "+91 98110 73345",
-          seats: ["B 5", "B 6"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-10T19:55",
-        },
-        {
-          reference: "QWL-3NQ8RT",
-          guest_name: "Harpreet Singh",
-          guest_email: "harpreet.s@yahoo.co.in",
-          guest_phone: "+91 98712 40019",
-          seats: ["D 11"],
-          status: "confirmed",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-14T13:07",
-        },
-      ],
-    },
-    {
-      id: "evt_7156",
-      title: "Tabla Solo: Anuradha Pal",
-      description:
-        "A solo recital in Teentaal with lehra on harmonium, followed by an open question hour with the artist.",
-      start_datetime: "2027-01-17T19:00",
-      venue: "Shanmukhananda Hall, Mumbai",
-      is_free: false,
-      price_minor: 150000,
-      currency: "INR",
-      status: "draft",
-      cancellation_policy: "",
-      note: "Draft since 1 Nov",
-      mine: true,
-      held: [],
-      rows: [],
-      bookings: [],
-    },
-    {
-      id: "evt_7103",
-      title: "Sufi Evening with Kavita Seth",
-      description:
-        "Kalaam of Bulleh Shah and Amir Khusro in the open courtyard, with a short talk on the poetry between sets.",
-      start_datetime: "2026-10-18T18:45",
-      venue: "Jawahar Kala Kendra, Jaipur",
-      is_free: false,
-      price_minor: 80000,
-      currency: "INR",
-      status: "published",
-      cancellation_policy: "This event has finished. Bookings are kept for the door record only.",
-      note: "Finished 18 Oct",
-      mine: true,
-      held: [],
-      rows: [
-        { key: "a7103", row_label: "A", seats: 15 },
-        { key: "b7103", row_label: "B", seats: 15 },
-        { key: "c7103", row_label: "C", seats: 15 },
-        { key: "d7103", row_label: "D", seats: 15 },
-      ],
-      bookings: [
-        {
-          reference: "SFE-2BX6QL",
-          guest_name: "Kabir Sharma",
-          guest_email: "kabir.sharma@gmail.com",
-          guest_phone: "+91 94140 55028",
-          seats: ["A 7", "A 8"],
-          status: "confirmed",
-          checked_in: true,
-          checked_in_at: "2026-10-18T18:21",
-          created_at: "2026-09-30T14:02",
-        },
-        {
-          reference: "SFE-7LM4VC",
-          guest_name: "Ritu Chaudhary",
-          guest_email: "ritu.chaudhary@fastmail.in",
-          guest_phone: "+91 99280 61174",
-          seats: ["B 2"],
-          status: "confirmed",
-          checked_in: true,
-          checked_in_at: "2026-10-18T18:34",
-          created_at: "2026-10-04T10:48",
-        },
-        {
-          reference: "SFE-9TK1ZP",
-          guest_name: "Mohit Jangid",
-          guest_email: "mohit.jangid@outlook.com",
-          guest_phone: "+91 70148 92203",
-          seats: ["C 13", "C 14"],
-          status: "confirmed",
-          checked_in: true,
-          checked_in_at: "2026-10-18T18:52",
-          created_at: "2026-10-07T20:19",
-        },
-        {
-          reference: "SFE-5RW8GD",
-          guest_name: "Pooja Rathore",
-          guest_email: "pooja.rathore@zoho.com",
-          guest_phone: "+91 88900 32745",
-          seats: ["D 5"],
-          status: "cancelled",
-          checked_in: false,
-          checked_in_at: "",
-          created_at: "2026-10-09T09:36",
-        },
-      ],
-    },
-    {
-      id: "evt_7160",
-      title: "Monsoon Sessions, Volume 3",
-      description: "Four acts across one night in the warehouse, curated by Priya Nalwade.",
-      start_datetime: "2026-11-28T19:00",
-      venue: "Bhoomi Warehouse, Bengaluru",
-      is_free: false,
-      price_minor: 110000,
-      currency: "INR",
-      status: "published",
-      cancellation_policy: "Set by the event organiser.",
-      note: "Organised by Priya Nalwade",
-      mine: false,
-      held: [],
-      rows: [
-        { key: "a7160", row_label: "A", seats: 18 },
-        { key: "b7160", row_label: "B", seats: 18 },
-        { key: "c7160", row_label: "C", seats: 18 },
-      ],
-      bookings: [],
-    },
-  ]);
+      held: e.held || [],
+      rows: e.rows || [],
+      bookings: e.bookings || [],
+    };
+  }
+
+  handleUnauthorized(e) {
+    if (e instanceof ApiError && e.status === 401) {
+      clearToken();
+      this.navigate("organiser-sign-in");
+      return true;
+    }
+    return false;
+  }
+
+  async loadEvents() {
+    this.loading.set(true);
+    try {
+      const data = await apiFetch("/api/organiser/events");
+      const list = Array.isArray(data) ? data : (data && data.events) || [];
+      this.events.set(list.map((e) => this.toLocalEvent(e)));
+      this.loadError.set("");
+      this.stale.set(false);
+      this.syncedLabel.set("Synced just now");
+    } catch (e) {
+      if (this.handleUnauthorized(e)) return;
+      this.loadError.set(e instanceof Error ? e.message : "Could not load your events.");
+    } finally {
+      this.loading.set(false);
+    }
+  }
 
   /* ---------- derived ---------- */
   selected = computed(() => this.events().find((e) => e.id === this.selectedId()) || null);
@@ -1671,12 +1313,7 @@ export default class Screen extends ScreenBase {
   }
 
   refresh() {
-    this.loading.set(true);
-    setTimeout(() => {
-      this.loading.set(false);
-      this.stale.set(false);
-      this.syncedLabel.set("Synced just now");
-    }, 700);
+    this.loadEvents();
   }
 
   loadForms(e) {
@@ -1732,44 +1369,69 @@ export default class Screen extends ScreenBase {
     }
   }
 
-  validateDetails() {
-    const errs = {};
-    if (!this.fTitle().trim()) {
-      errs.title = "Give the event a title. It is what attendees see first in browsing.";
-    }
-    if (!this.fStart()) {
-      errs.start = "Set the date and time. Without it the event cannot be listed or booked.";
-    }
-    if (!this.fVenue().trim()) {
-      errs.venue = "Name the venue so attendees know where to go.";
-    }
-    this.errors.set(errs);
-    return Object.keys(errs).length === 0;
+  // Maps a server field name to the key the template reads an error beside (the date/time
+  // field is labelled "start" in the form though the API calls it "start_datetime").
+  errorKey(field) {
+    if (field === "start_datetime") return "start";
+    return field;
   }
 
-  saveDetails(ev) {
-    ev.preventDefault();
-    if (!this.validateDetails()) {
-      this.say(
-        "error",
-        "Nothing was saved. Fill in the fields marked below and try again; your other edits are still here.",
-      );
-      return;
+  // Reads field-level validation messages off a 400 response body, whichever shape the
+  // server sends them in: {errors:{field: message}} or a single {field, message}.
+  applyServerErrors(body) {
+    const map = {};
+    if (body && typeof body === "object") {
+      if (body.errors && typeof body.errors === "object") {
+        for (const k of Object.keys(body.errors)) {
+          map[this.errorKey(k)] = body.errors[k];
+        }
+      } else if (body.field) {
+        map[this.errorKey(body.field)] = body.message || "That field needs a value.";
+      }
     }
+    return map;
+  }
+
+  async saveDetails(ev) {
+    ev.preventDefault();
+    this.errors.set({});
     this.saving.set(true);
-    setTimeout(() => {
+    const id = this.selectedId();
+    try {
+      const updated = await apiFetch(`/api/organiser/events/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          title: this.fTitle().trim(),
+          description: this.fDesc(),
+          start_datetime: this.fStart(),
+          venue: this.fVenue().trim(),
+        }),
+      });
       this.updateSelected({
-        title: this.fTitle().trim(),
-        description: this.fDesc(),
-        start_datetime: this.fStart(),
-        venue: this.fVenue().trim(),
+        title: updated.title,
+        description: updated.description,
+        start_datetime: updated.start_datetime,
+        venue: updated.venue,
       });
       this.saving.set(false);
       this.say(
         "ok",
         "Details saved. The public event page now shows " + this.fTitle().trim() + ".",
       );
-    }, 450);
+    } catch (e) {
+      this.saving.set(false);
+      if (this.handleUnauthorized(e)) return;
+      const errs = this.applyServerErrors(e && e.body);
+      if (Object.keys(errs).length > 0) {
+        this.errors.set(errs);
+        this.say(
+          "error",
+          "Nothing was saved. Fix the fields marked below and try again; your other edits are still here.",
+        );
+      } else {
+        this.say("error", e instanceof Error ? e.message : "Details were not saved.");
+      }
+    }
   }
 
   discardDetails() {
@@ -1785,46 +1447,44 @@ export default class Screen extends ScreenBase {
     this.say("ok", "Edits discarded. The saved details are back.");
   }
 
-  createEvent(ev) {
+  async createEvent(ev) {
     ev.preventDefault();
-    if (!this.validateDetails()) {
-      this.say(
-        "error",
-        "The draft was not created. Fill in the fields marked below; what you typed is kept.",
-      );
-      return;
-    }
+    this.errors.set({});
     this.saving.set(true);
-    setTimeout(() => {
-      const n = 7161 + this.events().length;
-      const id = "evt_" + n;
-      const draft = {
-        id: id,
-        title: this.fTitle().trim(),
-        description: this.fDesc(),
-        start_datetime: this.fStart(),
-        venue: this.fVenue().trim(),
-        is_free: false,
-        price_minor: 0,
-        currency: "INR",
-        status: "draft",
-        cancellation_policy: "",
-        note: "Draft created just now",
-        mine: true,
-        held: [],
-        rows: [],
-        bookings: [],
-      };
+    try {
+      const created = await apiFetch("/api/organiser/events", {
+        method: "POST",
+        body: JSON.stringify({
+          title: this.fTitle().trim(),
+          description: this.fDesc(),
+          start_datetime: this.fStart(),
+          venue: this.fVenue().trim(),
+        }),
+      });
+      const draft = this.toLocalEvent(created);
       this.events.update((list) => [draft].concat(list));
       this.saving.set(false);
-      this.selectEvent(id);
+      this.selectEvent(draft.id);
       this.tab.set("seating");
       this.say(
         "ok",
         draft.title +
           " is saved as a draft and hidden from the public. Lay out its seats, then publish it.",
       );
-    }, 450);
+    } catch (e) {
+      this.saving.set(false);
+      if (this.handleUnauthorized(e)) return;
+      const errs = this.applyServerErrors(e && e.body);
+      if (Object.keys(errs).length > 0) {
+        this.errors.set(errs);
+        this.say(
+          "error",
+          "The draft was not created. Fix the fields marked below; what you typed is kept.",
+        );
+      } else {
+        this.say("error", e instanceof Error ? e.message : "The draft could not be created.");
+      }
+    }
   }
 
   publish() {
@@ -1995,7 +1655,7 @@ export default class Screen extends ScreenBase {
     this.say("ok", "Layout changes discarded. The saved rows are back.");
   }
 
-  savePricing(ev) {
+  async savePricing(ev) {
     ev.preventDefault();
     const free = this.pIsFree();
     const v = Number(this.pPrice());
@@ -2009,12 +1669,22 @@ export default class Screen extends ScreenBase {
     }
     this.priceError.set("");
     this.saving.set(true);
-    setTimeout(() => {
+    const id = this.selectedId();
+    try {
+      const updated = await apiFetch(`/api/organiser/events/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          is_free: free,
+          price_minor: free ? 0 : Math.round(v * 100),
+          currency: this.pCurrency(),
+          cancellation_policy: this.pPolicy(),
+        }),
+      });
       this.updateSelected({
-        is_free: free,
-        price_minor: free ? 0 : Math.round(v * 100),
-        currency: this.pCurrency(),
-        cancellation_policy: this.pPolicy(),
+        is_free: updated.is_free,
+        price_minor: updated.price_minor,
+        currency: updated.currency,
+        cancellation_policy: updated.cancellation_policy,
       });
       this.saving.set(false);
       this.say(
@@ -2022,10 +1692,15 @@ export default class Screen extends ScreenBase {
         free
           ? "Saved. This event shows as free entry, and attendees book without any price being charged."
           : "Saved. Attendees now see " +
-              this.money(Math.round(v * 100), this.pCurrency()) +
+              this.money(updated.price_minor, updated.currency) +
               " per seat on the event page and through booking.",
       );
-    }, 450);
+    } catch (e) {
+      this.saving.set(false);
+      if (this.handleUnauthorized(e)) return;
+      this.priceError.set(e instanceof Error ? e.message : "Pricing was not saved.");
+      this.say("error", "Pricing was not saved.");
+    }
   }
 
   discardPricing() {

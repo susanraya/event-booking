@@ -19,6 +19,20 @@ import { getToken } from "@/lib/auth";
 // same value into both sides at deploy time, so authenticated calls work out of the box.
 export const API_SECRET_KEY: string = import.meta.env.VITE_API_SECRET_KEY ?? "";
 
+// Carries the HTTP status and parsed body alongside the message, so a caller that needs
+// more than the generic message (e.g. a field-level validation error, or a 401 to act on)
+// can read it without a second request.
+export class ApiError extends Error {
+  readonly status: number;
+  readonly body: unknown;
+  constructor(message: string, status: number, body: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   // A signed-in organiser's own JWT takes priority over the shared deploy-time secret,
   // so organiser calls carry the identity the backend needs to authorise them.
@@ -33,13 +47,17 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   });
   if (!response.ok) {
     let message = `${init?.method ?? "GET"} ${path} failed: ${response.status}`;
+    let body: unknown = null;
     try {
-      const body = await response.clone().json();
-      if (body && typeof body.message === "string" && body.message) message = body.message;
+      body = await response.clone().json();
+      if (body && typeof (body as { message?: unknown }).message === "string") {
+        const text = (body as { message: string }).message;
+        if (text) message = text;
+      }
     } catch {
       // Not JSON, or no body -- keep the generic message.
     }
-    throw new Error(message);
+    throw new ApiError(message, response.status, body);
   }
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }
