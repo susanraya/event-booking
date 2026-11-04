@@ -56,11 +56,11 @@ test.describe("organiser dashboard (AC-043, AC-044)", () => {
     await page.locator("#p-currency").selectOption({ index: 0 });
     await page.getByRole("button", { name: /save pricing/i }).click();
 
-    await publishAndVerify(page, title);
+    await publishAndVerify(page);
   });
 });
 
-async function publishAndVerify(page: Page, title: string) {
+async function publishAndVerify(page: Page) {
   await page.getByRole("button", { name: /publish event/i }).click();
   await expect(page.getByText("Published").first()).toBeVisible();
 }
