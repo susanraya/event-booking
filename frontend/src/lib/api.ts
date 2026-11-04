@@ -11,24 +11,35 @@
 // The generated screens do NOT use this yet -- they render seeded sample data, exactly as
 // they were approved. This is the seam to replace that with real calls, one screen at a
 // time.
-export const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+
+import { getToken } from "@/lib/auth";
 
 // The shared bearer the deployed API expects (its SECRET_KEY). The platform bakes the
 // same value into both sides at deploy time, so authenticated calls work out of the box.
 export const API_SECRET_KEY: string = import.meta.env.VITE_API_SECRET_KEY ?? "";
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  // A signed-in organiser's own JWT takes priority over the shared deploy-time secret,
+  // so organiser calls carry the identity the backend needs to authorise them.
+  const bearer = getToken() ?? (API_SECRET_KEY || null);
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...(API_SECRET_KEY ? { Authorization: `Bearer ${API_SECRET_KEY}` } : {}),
+      ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
       ...(init?.headers ?? {}),
     },
   });
   if (!response.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${path} failed: ${response.status}`);
+    let message = `${init?.method ?? "GET"} ${path} failed: ${response.status}`;
+    try {
+      const body = await response.clone().json();
+      if (body && typeof body.message === "string" && body.message) message = body.message;
+    } catch {
+      // Not JSON, or no body -- keep the generic message.
+    }
+    throw new Error(message);
   }
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }

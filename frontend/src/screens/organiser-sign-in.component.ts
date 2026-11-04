@@ -1,10 +1,12 @@
 // @ts-nocheck -- generated from the approved design under its plain-JavaScript contract; not hand-written TypeScript.
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { Component, signal, computed } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
 import { ScreenBase } from "@/lib/screen-base";
 import { UI_KIT } from "@/lib/ui";
+import { apiFetch } from "@/lib/api";
+import { setToken } from "@/lib/auth";
 const template = `
 <div class="min-h-screen w-full"
      [style.background-color]="brand.backgroundColor"
@@ -163,15 +165,12 @@ const template = `
                 Signed in
               </p>
               <div class="mt-5 flex items-center gap-4">
-                <ui-avatar [name]="organiser.name"></ui-avatar>
+                <ui-avatar [name]="organiser().name"></ui-avatar>
                 <div class="min-w-0">
-                  <p class="truncate text-lg" [style.font-family]="brand.fontHeading">{{ organiser.name }}</p>
-                  <p class="truncate text-sm" [style.color]="brand.neutralColor">{{ organiser.email }}</p>
+                  <p class="truncate text-lg" [style.font-family]="brand.fontHeading">{{ organiser().name }}</p>
+                  <p class="truncate text-sm" [style.color]="brand.neutralColor">{{ organiser().email }}</p>
                 </div>
               </div>
-              <p class="mt-5 text-xs" style="font-variant-numeric: tabular-nums;" [style.color]="brand.neutralColor">
-                Previous sign-in {{ organiser.lastSignIn }} &middot; 6 events in your care
-              </p>
               <div class="mt-7 flex flex-wrap items-center gap-3">
                 <button uiButton size="lg"
                         class="transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -193,45 +192,6 @@ const template = `
             </div>
           }
 
-          @case ('locked') {
-            <div class="velvet-rise mt-8 p-6"
-                 [style.border-radius]="brand.radius"
-                 [style.border]="'1px solid rgba(255,255,255,0.16)'"
-                 [style.background-color]="'rgba(255,255,255,0.04)'">
-              <p class="flex items-center gap-2 text-[11px] uppercase tracking-[0.3em]" [style.color]="brand.accentColor">
-                <ui-icon name="AlertCircle" class="h-4 w-4" aria-hidden="true"></ui-icon>
-                Sign-in paused
-              </p>
-              <h2 class="mt-4 text-xl" [style.font-family]="brand.fontHeading">Three attempts, no match</h2>
-              <p class="mt-3 max-w-[58ch] text-sm leading-relaxed" [style.color]="brand.neutralColor">
-                We've paused sign-in on this device for 10 minutes. Your email is still in the form below when
-                you come back. If the password has slipped your mind, the account owner
-                &mdash; Priya Menon, priya.menon&#64;quorq.ai &mdash; can send you a reset link.
-              </p>
-              <p class="mt-4 text-xs" style="font-variant-numeric: tabular-nums;" [style.color]="brand.neutralColor">
-                Paused at 09:12 IST &middot; attempt 3 of 3 &middot; {{ maskedEmail() }}
-              </p>
-              <div class="mt-6 flex flex-wrap gap-3">
-                <button uiButton variant="secondary"
-                        class="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                        [style.outline-color]="brand.accentColor"
-                        [style.background-color]="'rgba(255,255,255,0.06)'"
-                        [style.border]="'1px solid rgba(255,255,255,0.14)'"
-                        [style.color]="brand.primaryColor"
-                        (click)="resetAttempts()">
-                  Try again
-                </button>
-                <button uiButton variant="ghost"
-                        class="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                        [style.outline-color]="brand.accentColor"
-                        [style.color]="brand.neutralColor"
-                        (click)="navigate('events')">
-                  Go to the public site
-                </button>
-              </div>
-            </div>
-          }
-
           @default {
             <form class="mt-8" (ngSubmit)="submit()" novalidate>
 
@@ -243,9 +203,9 @@ const template = `
                      [style.background-color]="'rgba(255,255,255,0.05)'">
                   <ui-icon name="AlertCircle" class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" [style.color]="brand.accentColor"></ui-icon>
                   <div>
-                    <p class="text-sm font-medium">That email and password don't match an organiser account.</p>
-                    <p class="mt-1 text-sm" style="font-variant-numeric: tabular-nums;" [style.color]="brand.neutralColor">
-                      Nothing has been cleared &mdash; edit and send it again. {{ attemptsLeft() }} of 3 attempts left on this device.
+                    <p class="text-sm font-medium">{{ errorMessage() }}</p>
+                    <p class="mt-1 text-sm" [style.color]="brand.neutralColor">
+                      Nothing has been cleared &mdash; edit and send it again.
                     </p>
                   </div>
                 </div>
@@ -362,15 +322,6 @@ const template = `
                         [style.color]="brand.accentColor"
                         (click)="navigate('check-in')">the check-in page</button>.
               </p>
-
-              <div class="mt-7 p-4"
-                   [style.border-radius]="brand.radius"
-                   [style.border]="'1px dashed rgba(255,255,255,0.16)'">
-                <p class="text-[10px] uppercase tracking-[0.3em]" [style.color]="brand.accentColor">Preview account</p>
-                <p class="mt-2 text-sm" style="font-variant-numeric: tabular-nums;" [style.color]="brand.neutralColor">
-                  susan.raya&#64;quorq.ai &nbsp;&middot;&nbsp; velvet-2026
-                </p>
-              </div>
             </form>
           }
         }
@@ -404,88 +355,71 @@ const template = `
   template,
 })
 export default class Screen extends ScreenBase {
-  organiser = {
-    name: 'Susan Raya',
-    email: 'susan.raya@quorq.ai',
-    lastSignIn: '2 Nov 2026, 18:42 IST'
-  };
+  organiser = signal({ name: "", email: "" });
 
-  checkedAt = 'checked 4 Nov 2026, 09:12 IST';
+  checkedAt = "checked 4 Nov 2026, 09:12 IST";
 
-  email = signal('');
-  password = signal('');
+  email = signal("");
+  password = signal("");
   remember = signal(false);
   showPassword = signal(false);
   submitted = signal(false);
   notice = signal(true);
-  attempts = signal(0);
-  // idle | invalid | loading | error | locked | success
-  status = signal('idle');
+  errorMessage = signal("");
+  // idle | invalid | loading | error | success
+  status = signal("idle");
 
   emailError = computed(() => {
-    if (!this.submitted()) return '';
+    if (!this.submitted()) return "";
     const value = this.email().trim();
-    if (!value) return 'Enter the email address on your organiser account.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'That does not look like an email address — check for a typo.';
-    return '';
+    if (!value) return "Enter the email address on your organiser account.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+      return "That does not look like an email address — check for a typo.";
+    return "";
   });
 
   passwordError = computed(() => {
-    if (!this.submitted()) return '';
-    if (!this.password()) return 'Enter your password to continue.';
-    return '';
+    if (!this.submitted()) return "";
+    if (!this.password()) return "Enter your password to continue.";
+    return "";
   });
 
-  attemptsLeft = computed(() => Math.max(0, 3 - this.attempts()));
-
-  maskedEmail = computed(() => {
-    const value = this.email().trim();
-    if (!value.includes('@')) return 'no email entered';
-    const parts = value.split('@');
-    const head = parts[0];
-    const masked = head.length <= 2 ? head.charAt(0) + '•' : head.slice(0, 2) + '•••';
-    return masked + '@' + parts[1];
-  });
-
-  submit() {
-    if (this.status() === 'loading' || this.status() === 'locked') return;
+  async submit() {
+    if (this.status() === "loading") return;
     this.submitted.set(true);
 
     if (this.emailError() || this.passwordError()) {
-      this.status.set('invalid');
+      this.status.set("invalid");
       return;
     }
 
-    this.status.set('loading');
-    setTimeout(() => {
-      const matches =
-        this.email().trim().toLowerCase() === this.organiser.email &&
-        this.password() === 'velvet-2026';
-
-      if (matches) {
-        this.attempts.set(0);
-        this.notice.set(false);
-        this.status.set('success');
-        return;
-      }
-
-      const next = this.attempts() + 1;
-      this.attempts.set(next);
-      this.status.set(next >= 3 ? 'locked' : 'error');
-    }, 900);
-  }
-
-  resetAttempts() {
-    this.attempts.set(0);
-    this.password.set('');
-    this.submitted.set(false);
-    this.status.set('idle');
+    this.status.set("loading");
+    try {
+      const result = await apiFetch("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: this.email().trim(), password: this.password() }),
+      });
+      setToken(result.token);
+      this.organiser.set(result.organiser ?? { name: "", email: this.email().trim() });
+      this.notice.set(false);
+      this.status.set("success");
+      this.navigate("organiser-events");
+    } catch (e) {
+      // AC-032: one generic message, taken from the server, that never says which field
+      // was wrong or whether the email exists.
+      this.errorMessage.set(
+        e instanceof Error && e.message
+          ? e.message
+          : "That email and password don't match an organiser account.",
+      );
+      this.status.set("error");
+    }
   }
 
   signOut() {
-    this.password.set('');
+    this.password.set("");
     this.submitted.set(false);
     this.showPassword.set(false);
-    this.status.set('idle');
+    this.status.set("idle");
   }
 }

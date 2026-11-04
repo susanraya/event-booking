@@ -7,6 +7,7 @@ import MyBookingScreen from "@/screens/my-booking.component";
 import OrganiserSignInScreen from "@/screens/organiser-sign-in.component";
 import OrganiserEventsScreen from "@/screens/organiser-events.component";
 import CheckInScreen from "@/screens/check-in.component";
+import { organiserAuthGuard } from "@/lib/organiser-auth.guard";
 
 /** The app's menu, drawn around every screen except the ones routed outside it. */
 @Component({
@@ -97,7 +98,11 @@ export const routes: Routes = [
       { path: "event-detail", component: EventDetailScreen },
       { path: "my-booking", component: MyBookingScreen },
       { path: "organiser-sign-in", component: OrganiserSignInScreen },
-      { path: "organiser-events", component: OrganiserEventsScreen },
+      {
+        path: "organiser-events",
+        component: OrganiserEventsScreen,
+        canActivate: [organiserAuthGuard],
+      },
       { path: "check-in", component: CheckInScreen },
     ],
   },

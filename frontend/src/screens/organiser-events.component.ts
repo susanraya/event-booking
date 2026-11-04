@@ -1,10 +1,11 @@
 // @ts-nocheck -- generated from the approved design under its plain-JavaScript contract; not hand-written TypeScript.
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { Component, signal, computed, effect } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
 import { ScreenBase } from "@/lib/screen-base";
 import { UI_KIT } from "@/lib/ui";
+import { clearToken } from "@/lib/auth";
 const template = `
 <div class="velvet min-h-screen w-full"
      [style.background-color]="brand.backgroundColor"
@@ -31,7 +32,9 @@ const template = `
         </p>
       </div>
       <div class="flex items-center gap-3">
-        <span class="hidden text-xs sm:inline" [style.color]="brand.neutralColor">Signed in as Susan Raya</span>
+        <button uiButton variant="ghost" type="button" (click)="signOut()" [style.color]="brand.neutralColor">
+          Sign out
+        </button>
         <button uiButton variant="secondary" type="button" class="border gap-2" (click)="startCreate()"
                 [style.background-color]="panel2" [style.border-color]="line" [style.color]="brand.primaryColor">
           <ui-icon name="Plus" class="h-4 w-4" aria-hidden="true"></ui-icon>
@@ -797,55 +800,86 @@ const template = `
   template,
 })
 export default class Screen extends ScreenBase {
-  /* ---------- surface tokens (tints over the brand canvas, no raw palette) ---------- */
-  panel = 'rgba(255,255,255,0.035)';
-  panel2 = 'rgba(255,255,255,0.065)';
-  line = 'rgba(255,255,255,0.12)';
-  field = 'rgba(0,0,0,0.25)';
-  seatFree = 'rgba(255,255,255,0.09)';
+  signOut() {
+    clearToken();
+    this.navigate("organiser-sign-in");
+  }
 
-  today = '2026-11-04T09:20';
+  /* ---------- surface tokens (tints over the brand canvas, no raw palette) ---------- */
+  panel = "rgba(255,255,255,0.035)";
+  panel2 = "rgba(255,255,255,0.065)";
+  line = "rgba(255,255,255,0.12)";
+  field = "rgba(0,0,0,0.25)";
+  seatFree = "rgba(255,255,255,0.09)";
+
+  today = "2026-11-04T09:20";
   skeletons = [1, 2, 3, 4];
-  currencies = ['INR', 'USD', 'EUR', 'GBP'];
+  currencies = ["INR", "USD", "EUR", "GBP"];
   statusFilters = [
-    { value: 'all', label: 'All' },
-    { value: 'published', label: 'Live' },
-    { value: 'draft', label: 'Draft' }
+    { value: "all", label: "All" },
+    { value: "published", label: "Live" },
+    { value: "draft", label: "Draft" },
   ];
 
-  days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  daysShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  daysShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  monthsShort = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
   /* ---------- state ---------- */
-  query = signal('');
-  statusFilter = signal('all');
+  query = signal("");
+  statusFilter = signal("all");
   loading = signal(false);
   stale = signal(true);
-  syncedLabel = signal('Last synced 09:04');
+  syncedLabel = signal("Last synced 09:04");
   flash = signal(null);
   saving = signal(false);
 
-  mode = signal('edit');
-  tab = signal('details');
-  selectedId = signal('evt_7142');
-  prevSelectedId = signal('evt_7142');
+  mode = signal("edit");
+  tab = signal("details");
+  selectedId = signal("evt_7142");
+  prevSelectedId = signal("evt_7142");
 
   errors = signal({});
-  publishError = signal('');
+  publishError = signal("");
   confirmUnpublish = signal(false);
 
-  fTitle = signal('');
-  fDesc = signal('');
-  fStart = signal('');
-  fVenue = signal('');
+  fTitle = signal("");
+  fDesc = signal("");
+  fStart = signal("");
+  fVenue = signal("");
 
   layoutRows = signal([]);
-  newRowLabel = signal('');
+  newRowLabel = signal("");
   newRowSeats = signal(12);
-  addRowError = signal('');
-  layoutError = signal('');
+  addRowError = signal("");
+  layoutError = signal("");
   rowError = signal(null);
   removeKey = signal(null);
   justAdded = signal(null);
@@ -853,200 +887,437 @@ export default class Screen extends ScreenBase {
 
   pIsFree = signal(false);
   pPrice = signal(0);
-  pCurrency = signal('INR');
-  pPolicy = signal('');
-  priceError = signal('');
+  pCurrency = signal("INR");
+  pPolicy = signal("");
+  priceError = signal("");
 
-  bookingQuery = signal('');
+  bookingQuery = signal("");
 
   events = signal([
     {
-      id: 'evt_7142',
-      title: 'Mehfil: Begum Akhtar Centenary',
-      description: 'An evening of thumri, dadra and ghazal marking a hundred years of Begum Akhtar. Vocals by Shubha Mudgal, sarangi by Murad Ali Khan. Doors at 7:00 PM, two sets with a twenty-minute interval.',
-      start_datetime: '2026-11-14T19:30',
-      venue: 'Royal Opera House, Mumbai',
+      id: "evt_7142",
+      title: "Mehfil: Begum Akhtar Centenary",
+      description:
+        "An evening of thumri, dadra and ghazal marking a hundred years of Begum Akhtar. Vocals by Shubha Mudgal, sarangi by Murad Ali Khan. Doors at 7:00 PM, two sets with a twenty-minute interval.",
+      start_datetime: "2026-11-14T19:30",
+      venue: "Royal Opera House, Mumbai",
       is_free: false,
       price_minor: 180000,
-      currency: 'INR',
-      status: 'published',
-      cancellation_policy: 'Free cancellation up to 48 hours before the start. After that the seat is released but the amount is not returned.',
-      note: 'Published 26 Oct',
+      currency: "INR",
+      status: "published",
+      cancellation_policy:
+        "Free cancellation up to 48 hours before the start. After that the seat is released but the amount is not returned.",
+      note: "Published 26 Oct",
       mine: true,
-      held: ['B 2', 'B 3'],
+      held: ["B 2", "B 3"],
       rows: [
-        { key: 'a7142', row_label: 'A', seats: 14 }, { key: 'b7142', row_label: 'B', seats: 14 },
-        { key: 'c7142', row_label: 'C', seats: 14 }, { key: 'd7142', row_label: 'D', seats: 14 },
-        { key: 'e7142', row_label: 'E', seats: 14 }, { key: 'f7142', row_label: 'F', seats: 14 },
-        { key: 'g7142', row_label: 'G', seats: 12 }, { key: 'h7142', row_label: 'H', seats: 12 }
+        { key: "a7142", row_label: "A", seats: 14 },
+        { key: "b7142", row_label: "B", seats: 14 },
+        { key: "c7142", row_label: "C", seats: 14 },
+        { key: "d7142", row_label: "D", seats: 14 },
+        { key: "e7142", row_label: "E", seats: 14 },
+        { key: "f7142", row_label: "F", seats: 14 },
+        { key: "g7142", row_label: "G", seats: 12 },
+        { key: "h7142", row_label: "H", seats: 12 },
       ],
       bookings: [
-        { reference: 'MHF-7QX4D2', guest_name: 'Aarav Mehta', guest_email: 'aarav.mehta@gmail.com', guest_phone: '+91 98201 44312', seats: ['A 4', 'A 5'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-10-28T11:04' },
-        { reference: 'MHF-2KD9P7', guest_name: 'Sharmila Iyer', guest_email: 's.iyer@fastmail.in', guest_phone: '+91 98675 20918', seats: ['C 11', 'C 12', 'C 13'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-10-29T18:42' },
-        { reference: 'MHF-8LT3VQ', guest_name: 'Rustom Daruwala', guest_email: 'rustom.d@outlook.com', guest_phone: '+91 99302 77810', seats: ['B 7'], status: 'cancelled', checked_in: false, checked_in_at: '', created_at: '2026-10-30T09:15' },
-        { reference: 'MHF-5NC6HJ', guest_name: 'Nandini Rao', guest_email: 'nandini.rao@hotmail.com', guest_phone: '+91 90043 11227', seats: ['D 1', 'D 2'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-10-31T16:20' },
-        { reference: 'MHF-9VB1RK', guest_name: 'Imran Qureshi', guest_email: 'imran.q@zoho.com', guest_phone: '+91 88280 65509', seats: ['F 9', 'F 10', 'F 11', 'F 12'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-11-01T20:27' },
-        { reference: 'MHF-3PW8ZE', guest_name: 'Leela Krishnan', guest_email: 'leela.k@gmail.com', guest_phone: '+91 93440 10982', seats: ['G 3'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-11-02T07:51' },
-        { reference: 'MHF-6HD2TA', guest_name: 'Vikram Sethi', guest_email: 'vikram.sethi@live.com', guest_phone: '+91 98100 48276', seats: ['A 11', 'A 12'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-11-03T13:30' },
-        { reference: 'MHF-4ZQ7MN', guest_name: 'Fatima Shaikh', guest_email: 'fatima.shaikh@gmail.com', guest_phone: '+91 70212 33940', seats: ['E 6', 'E 7'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-11-03T22:05' }
-      ]
+        {
+          reference: "MHF-7QX4D2",
+          guest_name: "Aarav Mehta",
+          guest_email: "aarav.mehta@gmail.com",
+          guest_phone: "+91 98201 44312",
+          seats: ["A 4", "A 5"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-28T11:04",
+        },
+        {
+          reference: "MHF-2KD9P7",
+          guest_name: "Sharmila Iyer",
+          guest_email: "s.iyer@fastmail.in",
+          guest_phone: "+91 98675 20918",
+          seats: ["C 11", "C 12", "C 13"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-29T18:42",
+        },
+        {
+          reference: "MHF-8LT3VQ",
+          guest_name: "Rustom Daruwala",
+          guest_email: "rustom.d@outlook.com",
+          guest_phone: "+91 99302 77810",
+          seats: ["B 7"],
+          status: "cancelled",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-30T09:15",
+        },
+        {
+          reference: "MHF-5NC6HJ",
+          guest_name: "Nandini Rao",
+          guest_email: "nandini.rao@hotmail.com",
+          guest_phone: "+91 90043 11227",
+          seats: ["D 1", "D 2"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-31T16:20",
+        },
+        {
+          reference: "MHF-9VB1RK",
+          guest_name: "Imran Qureshi",
+          guest_email: "imran.q@zoho.com",
+          guest_phone: "+91 88280 65509",
+          seats: ["F 9", "F 10", "F 11", "F 12"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-11-01T20:27",
+        },
+        {
+          reference: "MHF-3PW8ZE",
+          guest_name: "Leela Krishnan",
+          guest_email: "leela.k@gmail.com",
+          guest_phone: "+91 93440 10982",
+          seats: ["G 3"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-11-02T07:51",
+        },
+        {
+          reference: "MHF-6HD2TA",
+          guest_name: "Vikram Sethi",
+          guest_email: "vikram.sethi@live.com",
+          guest_phone: "+91 98100 48276",
+          seats: ["A 11", "A 12"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-11-03T13:30",
+        },
+        {
+          reference: "MHF-4ZQ7MN",
+          guest_name: "Fatima Shaikh",
+          guest_email: "fatima.shaikh@gmail.com",
+          guest_phone: "+91 70212 33940",
+          seats: ["E 6", "E 7"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-11-03T22:05",
+        },
+      ],
     },
     {
-      id: 'evt_7128',
-      title: 'Jazz by the Backwaters',
-      description: 'The Kochi Quintet play standards and Malayalam folk re-workings on the palace lawn, with the tide coming in behind the band. Seating is on cane chairs; the lawn is level and step-free.',
-      start_datetime: '2026-11-08T20:00',
-      venue: 'Bolgatty Palace Lawn, Kochi',
+      id: "evt_7128",
+      title: "Jazz by the Backwaters",
+      description:
+        "The Kochi Quintet play standards and Malayalam folk re-workings on the palace lawn, with the tide coming in behind the band. Seating is on cane chairs; the lawn is level and step-free.",
+      start_datetime: "2026-11-08T20:00",
+      venue: "Bolgatty Palace Lawn, Kochi",
       is_free: false,
       price_minor: 240000,
-      currency: 'INR',
-      status: 'published',
-      cancellation_policy: 'Cancellation up to 24 hours before the start releases the seat. The event runs rain or shine.',
-      note: 'Published 2 Oct',
+      currency: "INR",
+      status: "published",
+      cancellation_policy:
+        "Cancellation up to 24 hours before the start releases the seat. The event runs rain or shine.",
+      note: "Published 2 Oct",
       mine: true,
-      held: ['D 5'],
+      held: ["D 5"],
       rows: [
-        { key: 'a7128', row_label: 'A', seats: 12 }, { key: 'b7128', row_label: 'B', seats: 12 },
-        { key: 'c7128', row_label: 'C', seats: 12 }, { key: 'd7128', row_label: 'D', seats: 12 },
-        { key: 'e7128', row_label: 'E', seats: 12 }, { key: 'f7128', row_label: 'F', seats: 12 }
+        { key: "a7128", row_label: "A", seats: 12 },
+        { key: "b7128", row_label: "B", seats: 12 },
+        { key: "c7128", row_label: "C", seats: 12 },
+        { key: "d7128", row_label: "D", seats: 12 },
+        { key: "e7128", row_label: "E", seats: 12 },
+        { key: "f7128", row_label: "F", seats: 12 },
       ],
       bookings: [
-        { reference: 'JBB-1RK5WD', guest_name: 'Meera Pillai', guest_email: 'meera.pillai@gmail.com', guest_phone: '+91 94470 33218', seats: ['A 1', 'A 2'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-10-12T10:11' },
-        { reference: 'JBB-7TG4CX', guest_name: 'Thomas Varghese', guest_email: 't.varghese@rediffmail.com', guest_phone: '+91 98954 66027', seats: ['B 3', 'B 4', 'B 5'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-10-19T15:48' },
-        { reference: 'JBB-2MN9QB', guest_name: 'Anjali Nair', guest_email: 'anjali.nair@proton.me', guest_phone: '+91 85890 71204', seats: ['C 6'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-10-25T21:02' },
-        { reference: 'JBB-5WD8LF', guest_name: 'Gautam Bhatt', guest_email: 'gautam.bhatt@gmail.com', guest_phone: '+91 99204 85511', seats: ['E 9', 'E 10'], status: 'cancelled', checked_in: false, checked_in_at: '', created_at: '2026-10-30T12:33' },
-        { reference: 'JBB-9CZ2HV', guest_name: 'Rhea D Souza', guest_email: 'rhea.dsouza@yahoo.in', guest_phone: '+91 70259 41836', seats: ['F 1', 'F 2'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-11-02T09:27' }
-      ]
+        {
+          reference: "JBB-1RK5WD",
+          guest_name: "Meera Pillai",
+          guest_email: "meera.pillai@gmail.com",
+          guest_phone: "+91 94470 33218",
+          seats: ["A 1", "A 2"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-12T10:11",
+        },
+        {
+          reference: "JBB-7TG4CX",
+          guest_name: "Thomas Varghese",
+          guest_email: "t.varghese@rediffmail.com",
+          guest_phone: "+91 98954 66027",
+          seats: ["B 3", "B 4", "B 5"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-19T15:48",
+        },
+        {
+          reference: "JBB-2MN9QB",
+          guest_name: "Anjali Nair",
+          guest_email: "anjali.nair@proton.me",
+          guest_phone: "+91 85890 71204",
+          seats: ["C 6"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-25T21:02",
+        },
+        {
+          reference: "JBB-5WD8LF",
+          guest_name: "Gautam Bhatt",
+          guest_email: "gautam.bhatt@gmail.com",
+          guest_phone: "+91 99204 85511",
+          seats: ["E 9", "E 10"],
+          status: "cancelled",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-30T12:33",
+        },
+        {
+          reference: "JBB-9CZ2HV",
+          guest_name: "Rhea D Souza",
+          guest_email: "rhea.dsouza@yahoo.in",
+          guest_phone: "+91 70259 41836",
+          seats: ["F 1", "F 2"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-11-02T09:27",
+        },
+      ],
     },
     {
-      id: 'evt_7139',
-      title: 'Bandish and Brass: Kolkata Quartet',
-      description: 'Khayal bandishes rearranged for trumpet, trombone, tuba and tabla. One continuous set of ninety minutes, no interval.',
-      start_datetime: '2026-11-21T18:00',
-      venue: 'G. D. Birla Sabhagar, Kolkata',
+      id: "evt_7139",
+      title: "Bandish and Brass: Kolkata Quartet",
+      description:
+        "Khayal bandishes rearranged for trumpet, trombone, tuba and tabla. One continuous set of ninety minutes, no interval.",
+      start_datetime: "2026-11-21T18:00",
+      venue: "G. D. Birla Sabhagar, Kolkata",
       is_free: false,
       price_minor: 95000,
-      currency: 'INR',
-      status: 'published',
-      cancellation_policy: 'Seats may be released any time before the doors open. Amounts are settled directly with the box office.',
-      note: 'Published 30 Oct',
+      currency: "INR",
+      status: "published",
+      cancellation_policy:
+        "Seats may be released any time before the doors open. Amounts are settled directly with the box office.",
+      note: "Published 30 Oct",
       mine: true,
       held: [],
       rows: [
-        { key: 'a7139', row_label: 'A', seats: 10 }, { key: 'b7139', row_label: 'B', seats: 10 },
-        { key: 'c7139', row_label: 'C', seats: 10 }, { key: 'd7139', row_label: 'D', seats: 10 }
+        { key: "a7139", row_label: "A", seats: 10 },
+        { key: "b7139", row_label: "B", seats: 10 },
+        { key: "c7139", row_label: "C", seats: 10 },
+        { key: "d7139", row_label: "D", seats: 10 },
       ],
       bookings: [
-        { reference: 'BRB-4KP7DS', guest_name: 'Debjani Ghosh', guest_email: 'debjani.ghosh@gmail.com', guest_phone: '+91 98300 19457', seats: ['A 3', 'A 4'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-11-01T17:14' },
-        { reference: 'BRB-8HJ3NW', guest_name: 'Arnab Sen', guest_email: 'arnab.sen@outlook.in', guest_phone: '+91 90733 28860', seats: ['C 7'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-11-03T08:39' }
-      ]
+        {
+          reference: "BRB-4KP7DS",
+          guest_name: "Debjani Ghosh",
+          guest_email: "debjani.ghosh@gmail.com",
+          guest_phone: "+91 98300 19457",
+          seats: ["A 3", "A 4"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-11-01T17:14",
+        },
+        {
+          reference: "BRB-8HJ3NW",
+          guest_name: "Arnab Sen",
+          guest_email: "arnab.sen@outlook.in",
+          guest_phone: "+91 90733 28860",
+          seats: ["C 7"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-11-03T08:39",
+        },
+      ],
     },
     {
-      id: 'evt_7151',
-      title: 'Dawn Raga at Nandi Hills',
-      description: 'Bhairavi at first light, played on bansuri by Praveen Godkhindi. Gates at 5:00 AM, blankets provided, the music ends as the sun clears the ridge.',
-      start_datetime: '2026-12-06T05:45',
-      venue: 'Nandi Hills Amphitheatre, Bengaluru',
+      id: "evt_7151",
+      title: "Dawn Raga at Nandi Hills",
+      description:
+        "Bhairavi at first light, played on bansuri by Praveen Godkhindi. Gates at 5:00 AM, blankets provided, the music ends as the sun clears the ridge.",
+      start_datetime: "2026-12-06T05:45",
+      venue: "Nandi Hills Amphitheatre, Bengaluru",
       is_free: true,
       price_minor: 0,
-      currency: 'INR',
-      status: 'draft',
-      cancellation_policy: 'Free entry. Release your seat if plans change so someone on the waiting list can take it.',
-      note: 'Draft since 22 Oct',
+      currency: "INR",
+      status: "draft",
+      cancellation_policy:
+        "Free entry. Release your seat if plans change so someone on the waiting list can take it.",
+      note: "Draft since 22 Oct",
       mine: true,
       held: [],
       rows: [
-        { key: 'a7151', row_label: 'A', seats: 20 }, { key: 'b7151', row_label: 'B', seats: 20 },
-        { key: 'c7151', row_label: 'C', seats: 20 }
+        { key: "a7151", row_label: "A", seats: 20 },
+        { key: "b7151", row_label: "B", seats: 20 },
+        { key: "c7151", row_label: "C", seats: 20 },
       ],
-      bookings: []
+      bookings: [],
     },
     {
-      id: 'evt_7119',
-      title: 'Qawwali Night: Nizami Brothers',
-      description: 'A full qawwali sitting in the fort courtyard, with the party of nine on a raised platform. Carpet seating in front, chairs behind.',
-      start_datetime: '2026-10-29T19:30',
-      venue: 'Purana Qila, New Delhi',
+      id: "evt_7119",
+      title: "Qawwali Night: Nizami Brothers",
+      description:
+        "A full qawwali sitting in the fort courtyard, with the party of nine on a raised platform. Carpet seating in front, chairs behind.",
+      start_datetime: "2026-10-29T19:30",
+      venue: "Purana Qila, New Delhi",
       is_free: false,
       price_minor: 120000,
-      currency: 'INR',
-      status: 'draft',
-      cancellation_policy: 'Cancellation up to 72 hours before the start. The courtyard is uncovered and the event may be moved for weather.',
-      note: 'Unpublished 24 Oct, hidden from the public',
+      currency: "INR",
+      status: "draft",
+      cancellation_policy:
+        "Cancellation up to 72 hours before the start. The courtyard is uncovered and the event may be moved for weather.",
+      note: "Unpublished 24 Oct, hidden from the public",
       mine: true,
       held: [],
       rows: [
-        { key: 'a7119', row_label: 'A', seats: 16 }, { key: 'b7119', row_label: 'B', seats: 16 },
-        { key: 'c7119', row_label: 'C', seats: 16 }, { key: 'd7119', row_label: 'D', seats: 16 },
-        { key: 'e7119', row_label: 'E', seats: 16 }
+        { key: "a7119", row_label: "A", seats: 16 },
+        { key: "b7119", row_label: "B", seats: 16 },
+        { key: "c7119", row_label: "C", seats: 16 },
+        { key: "d7119", row_label: "D", seats: 16 },
+        { key: "e7119", row_label: "E", seats: 16 },
       ],
       bookings: [
-        { reference: 'QWL-6DF2PK', guest_name: 'Zoya Hussain', guest_email: 'zoya.hussain@gmail.com', guest_phone: '+91 98110 73345', seats: ['B 5', 'B 6'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-10-10T19:55' },
-        { reference: 'QWL-3NQ8RT', guest_name: 'Harpreet Singh', guest_email: 'harpreet.s@yahoo.co.in', guest_phone: '+91 98712 40019', seats: ['D 11'], status: 'confirmed', checked_in: false, checked_in_at: '', created_at: '2026-10-14T13:07' }
-      ]
+        {
+          reference: "QWL-6DF2PK",
+          guest_name: "Zoya Hussain",
+          guest_email: "zoya.hussain@gmail.com",
+          guest_phone: "+91 98110 73345",
+          seats: ["B 5", "B 6"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-10T19:55",
+        },
+        {
+          reference: "QWL-3NQ8RT",
+          guest_name: "Harpreet Singh",
+          guest_email: "harpreet.s@yahoo.co.in",
+          guest_phone: "+91 98712 40019",
+          seats: ["D 11"],
+          status: "confirmed",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-14T13:07",
+        },
+      ],
     },
     {
-      id: 'evt_7156',
-      title: 'Tabla Solo: Anuradha Pal',
-      description: 'A solo recital in Teentaal with lehra on harmonium, followed by an open question hour with the artist.',
-      start_datetime: '2027-01-17T19:00',
-      venue: 'Shanmukhananda Hall, Mumbai',
+      id: "evt_7156",
+      title: "Tabla Solo: Anuradha Pal",
+      description:
+        "A solo recital in Teentaal with lehra on harmonium, followed by an open question hour with the artist.",
+      start_datetime: "2027-01-17T19:00",
+      venue: "Shanmukhananda Hall, Mumbai",
       is_free: false,
       price_minor: 150000,
-      currency: 'INR',
-      status: 'draft',
-      cancellation_policy: '',
-      note: 'Draft since 1 Nov',
+      currency: "INR",
+      status: "draft",
+      cancellation_policy: "",
+      note: "Draft since 1 Nov",
       mine: true,
       held: [],
       rows: [],
-      bookings: []
+      bookings: [],
     },
     {
-      id: 'evt_7103',
-      title: 'Sufi Evening with Kavita Seth',
-      description: 'Kalaam of Bulleh Shah and Amir Khusro in the open courtyard, with a short talk on the poetry between sets.',
-      start_datetime: '2026-10-18T18:45',
-      venue: 'Jawahar Kala Kendra, Jaipur',
+      id: "evt_7103",
+      title: "Sufi Evening with Kavita Seth",
+      description:
+        "Kalaam of Bulleh Shah and Amir Khusro in the open courtyard, with a short talk on the poetry between sets.",
+      start_datetime: "2026-10-18T18:45",
+      venue: "Jawahar Kala Kendra, Jaipur",
       is_free: false,
       price_minor: 80000,
-      currency: 'INR',
-      status: 'published',
-      cancellation_policy: 'This event has finished. Bookings are kept for the door record only.',
-      note: 'Finished 18 Oct',
+      currency: "INR",
+      status: "published",
+      cancellation_policy: "This event has finished. Bookings are kept for the door record only.",
+      note: "Finished 18 Oct",
       mine: true,
       held: [],
       rows: [
-        { key: 'a7103', row_label: 'A', seats: 15 }, { key: 'b7103', row_label: 'B', seats: 15 },
-        { key: 'c7103', row_label: 'C', seats: 15 }, { key: 'd7103', row_label: 'D', seats: 15 }
+        { key: "a7103", row_label: "A", seats: 15 },
+        { key: "b7103", row_label: "B", seats: 15 },
+        { key: "c7103", row_label: "C", seats: 15 },
+        { key: "d7103", row_label: "D", seats: 15 },
       ],
       bookings: [
-        { reference: 'SFE-2BX6QL', guest_name: 'Kabir Sharma', guest_email: 'kabir.sharma@gmail.com', guest_phone: '+91 94140 55028', seats: ['A 7', 'A 8'], status: 'confirmed', checked_in: true, checked_in_at: '2026-10-18T18:21', created_at: '2026-09-30T14:02' },
-        { reference: 'SFE-7LM4VC', guest_name: 'Ritu Chaudhary', guest_email: 'ritu.chaudhary@fastmail.in', guest_phone: '+91 99280 61174', seats: ['B 2'], status: 'confirmed', checked_in: true, checked_in_at: '2026-10-18T18:34', created_at: '2026-10-04T10:48' },
-        { reference: 'SFE-9TK1ZP', guest_name: 'Mohit Jangid', guest_email: 'mohit.jangid@outlook.com', guest_phone: '+91 70148 92203', seats: ['C 13', 'C 14'], status: 'confirmed', checked_in: true, checked_in_at: '2026-10-18T18:52', created_at: '2026-10-07T20:19' },
-        { reference: 'SFE-5RW8GD', guest_name: 'Pooja Rathore', guest_email: 'pooja.rathore@zoho.com', guest_phone: '+91 88900 32745', seats: ['D 5'], status: 'cancelled', checked_in: false, checked_in_at: '', created_at: '2026-10-09T09:36' }
-      ]
+        {
+          reference: "SFE-2BX6QL",
+          guest_name: "Kabir Sharma",
+          guest_email: "kabir.sharma@gmail.com",
+          guest_phone: "+91 94140 55028",
+          seats: ["A 7", "A 8"],
+          status: "confirmed",
+          checked_in: true,
+          checked_in_at: "2026-10-18T18:21",
+          created_at: "2026-09-30T14:02",
+        },
+        {
+          reference: "SFE-7LM4VC",
+          guest_name: "Ritu Chaudhary",
+          guest_email: "ritu.chaudhary@fastmail.in",
+          guest_phone: "+91 99280 61174",
+          seats: ["B 2"],
+          status: "confirmed",
+          checked_in: true,
+          checked_in_at: "2026-10-18T18:34",
+          created_at: "2026-10-04T10:48",
+        },
+        {
+          reference: "SFE-9TK1ZP",
+          guest_name: "Mohit Jangid",
+          guest_email: "mohit.jangid@outlook.com",
+          guest_phone: "+91 70148 92203",
+          seats: ["C 13", "C 14"],
+          status: "confirmed",
+          checked_in: true,
+          checked_in_at: "2026-10-18T18:52",
+          created_at: "2026-10-07T20:19",
+        },
+        {
+          reference: "SFE-5RW8GD",
+          guest_name: "Pooja Rathore",
+          guest_email: "pooja.rathore@zoho.com",
+          guest_phone: "+91 88900 32745",
+          seats: ["D 5"],
+          status: "cancelled",
+          checked_in: false,
+          checked_in_at: "",
+          created_at: "2026-10-09T09:36",
+        },
+      ],
     },
     {
-      id: 'evt_7160',
-      title: 'Monsoon Sessions, Volume 3',
-      description: 'Four acts across one night in the warehouse, curated by Priya Nalwade.',
-      start_datetime: '2026-11-28T19:00',
-      venue: 'Bhoomi Warehouse, Bengaluru',
+      id: "evt_7160",
+      title: "Monsoon Sessions, Volume 3",
+      description: "Four acts across one night in the warehouse, curated by Priya Nalwade.",
+      start_datetime: "2026-11-28T19:00",
+      venue: "Bhoomi Warehouse, Bengaluru",
       is_free: false,
       price_minor: 110000,
-      currency: 'INR',
-      status: 'published',
-      cancellation_policy: 'Set by the event organiser.',
-      note: 'Organised by Priya Nalwade',
+      currency: "INR",
+      status: "published",
+      cancellation_policy: "Set by the event organiser.",
+      note: "Organised by Priya Nalwade",
       mine: false,
       held: [],
       rows: [
-        { key: 'a7160', row_label: 'A', seats: 18 }, { key: 'b7160', row_label: 'B', seats: 18 },
-        { key: 'c7160', row_label: 'C', seats: 18 }
+        { key: "a7160", row_label: "A", seats: 18 },
+        { key: "b7160", row_label: "B", seats: 18 },
+        { key: "c7160", row_label: "C", seats: 18 },
       ],
-      bookings: []
-    }
+      bookings: [],
+    },
   ]);
 
   /* ---------- derived ---------- */
@@ -1056,8 +1327,8 @@ export default class Screen extends ScreenBase {
     const q = this.query().trim().toLowerCase();
     const s = this.statusFilter();
     return this.events().filter((e) => {
-      const okStatus = s === 'all' ? true : e.status === s;
-      const okQuery = q === '' ? true : (e.title + ' ' + e.venue).toLowerCase().includes(q);
+      const okStatus = s === "all" ? true : e.status === s;
+      const okQuery = q === "" ? true : (e.title + " " + e.venue).toLowerCase().includes(q);
       return okStatus && okQuery;
     });
   });
@@ -1066,10 +1337,10 @@ export default class Screen extends ScreenBase {
     const ev = this.selected();
     const n = ev ? ev.bookings.length : 0;
     return [
-      { value: 'details', id: 'details', label: 'Details' },
-      { value: 'seating', id: 'seating', label: 'Seating layout' },
-      { value: 'pricing', id: 'pricing', label: 'Pricing' },
-      { value: 'bookings', id: 'bookings', label: 'Bookings (' + n + ')' }
+      { value: "details", id: "details", label: "Details" },
+      { value: "seating", id: "seating", label: "Seating layout" },
+      { value: "pricing", id: "pricing", label: "Pricing" },
+      { value: "bookings", id: "bookings", label: "Bookings (" + n + ")" },
     ];
   });
 
@@ -1078,7 +1349,11 @@ export default class Screen extends ScreenBase {
     const set = {};
     if (ev) {
       for (const b of ev.bookings) {
-        if (b.status === 'confirmed') { for (const k of b.seats) { set[k] = true; } }
+        if (b.status === "confirmed") {
+          for (const k of b.seats) {
+            set[k] = true;
+          }
+        }
       }
     }
     return set;
@@ -1087,21 +1362,34 @@ export default class Screen extends ScreenBase {
   heldSet = computed(() => {
     const ev = this.selected();
     const set = {};
-    if (ev) { for (const k of ev.held) { set[k] = true; } }
+    if (ev) {
+      for (const k of ev.held) {
+        set[k] = true;
+      }
+    }
     return set;
   });
 
-  mapRows = computed(() => this.layoutRows().map((r) => ({
-    key: r.key,
-    label: (r.row_label || '?'),
-    nums: Array.from({ length: Math.max(0, Math.min(60, Number(r.seats) || 0)) }, (_, i) => i + 1)
-  })));
+  mapRows = computed(() =>
+    this.layoutRows().map((r) => ({
+      key: r.key,
+      label: r.row_label || "?",
+      nums: Array.from(
+        { length: Math.max(0, Math.min(60, Number(r.seats) || 0)) },
+        (_, i) => i + 1,
+      ),
+    })),
+  );
 
-  totalSeats = computed(() => this.layoutRows().reduce((sum, r) => sum + (Number(r.seats) || 0), 0));
+  totalSeats = computed(() =>
+    this.layoutRows().reduce((sum, r) => sum + (Number(r.seats) || 0), 0),
+  );
 
   layoutSummary = computed(() => {
     const rows = this.layoutRows();
-    if (rows.length === 0) { return 'No rows defined yet.'; }
+    if (rows.length === 0) {
+      return "No rows defined yet.";
+    }
     const total = this.totalSeats();
     let booked = 0;
     let held = 0;
@@ -1110,63 +1398,113 @@ export default class Screen extends ScreenBase {
     for (const r of rows) {
       const n = Number(r.seats) || 0;
       for (let i = 1; i <= n; i++) {
-        const key = r.row_label + ' ' + i;
-        if (bs[key]) { booked++; } else if (hs[key]) { held++; }
+        const key = r.row_label + " " + i;
+        if (bs[key]) {
+          booked++;
+        } else if (hs[key]) {
+          held++;
+        }
       }
     }
     const first = rows[0].row_label;
     const last = rows[rows.length - 1].row_label;
-    return rows.length + ' rows, ' + first + ' to ' + last + '. ' + total + ' seats in total: ' +
-      booked + ' booked, ' + held + ' on hold, ' + (total - booked - held) + ' available.';
+    return (
+      rows.length +
+      " rows, " +
+      first +
+      " to " +
+      last +
+      ". " +
+      total +
+      " seats in total: " +
+      booked +
+      " booked, " +
+      held +
+      " on hold, " +
+      (total - booked - held) +
+      " available."
+    );
   });
 
   dirtyDetails = computed(() => {
     const ev = this.selected();
-    if (!ev || this.mode() !== 'edit') { return false; }
-    return ev.title !== this.fTitle() || ev.description !== this.fDesc() ||
-      ev.start_datetime !== this.fStart() || ev.venue !== this.fVenue();
+    if (!ev || this.mode() !== "edit") {
+      return false;
+    }
+    return (
+      ev.title !== this.fTitle() ||
+      ev.description !== this.fDesc() ||
+      ev.start_datetime !== this.fStart() ||
+      ev.venue !== this.fVenue()
+    );
   });
 
   pricePreview = computed(() => {
-    if (this.pIsFree()) { return 'Free entry'; }
+    if (this.pIsFree()) {
+      return "Free entry";
+    }
     const v = Number(this.pPrice());
-    if (!v || v <= 0) { return 'Set a price above zero'; }
-    return this.money(v * 100, this.pCurrency()) + ' per seat';
+    if (!v || v <= 0) {
+      return "Set a price above zero";
+    }
+    return this.money(v * 100, this.pCurrency()) + " per seat";
   });
 
   visibleBookings = computed(() => {
     const ev = this.selected();
-    if (!ev) { return []; }
+    if (!ev) {
+      return [];
+    }
     const q = this.bookingQuery().trim().toLowerCase();
-    if (q === '') { return ev.bookings; }
-    return ev.bookings.filter((b) =>
-      b.guest_name.toLowerCase().includes(q) ||
-      b.guest_email.toLowerCase().includes(q) ||
-      b.reference.toLowerCase().includes(q));
+    if (q === "") {
+      return ev.bookings;
+    }
+    return ev.bookings.filter(
+      (b) =>
+        b.guest_name.toLowerCase().includes(q) ||
+        b.guest_email.toLowerCase().includes(q) ||
+        b.reference.toLowerCase().includes(q),
+    );
   });
 
   statSeats = computed(() => {
     const ev = this.selected();
-    if (!ev) { return '0'; }
+    if (!ev) {
+      return "0";
+    }
     let n = 0;
-    for (const b of ev.bookings) { if (b.status === 'confirmed') { n += b.seats.length; } }
+    for (const b of ev.bookings) {
+      if (b.status === "confirmed") {
+        n += b.seats.length;
+      }
+    }
     const total = ev.rows.reduce((s, r) => s + (Number(r.seats) || 0), 0);
-    return n + ' / ' + total;
+    return n + " / " + total;
   });
 
   statCheckedIn = computed(() => {
     const ev = this.selected();
-    if (!ev) { return '0'; }
+    if (!ev) {
+      return "0";
+    }
     const n = ev.bookings.filter((b) => b.checked_in).length;
-    return n + ' of ' + ev.bookings.filter((b) => b.status === 'confirmed').length;
+    return n + " of " + ev.bookings.filter((b) => b.status === "confirmed").length;
   });
 
   statValue = computed(() => {
     const ev = this.selected();
-    if (!ev) { return '--'; }
-    if (ev.is_free) { return 'Free event'; }
+    if (!ev) {
+      return "--";
+    }
+    if (ev.is_free) {
+      return "Free event";
+    }
     let seats = 0;
-    for (const b of ev.bookings) { if (b.status === 'confirmed') { seats += b.seats.length; } }
+    for (const b of ev.bookings) {
+      if (b.status === "confirmed") {
+        seats += b.seats.length;
+      }
+    }
     return this.money(seats * ev.price_minor, ev.currency);
   });
 
@@ -1182,90 +1520,144 @@ export default class Screen extends ScreenBase {
 
   /* ---------- helpers ---------- */
   countFor(v) {
-    if (v === 'all') { return this.events().length; }
+    if (v === "all") {
+      return this.events().length;
+    }
     return this.events().filter((e) => e.status === v).length;
   }
 
   firstOwnId() {
     const e = this.events().find((x) => x.mine);
-    return e ? e.id : '';
+    return e ? e.id : "";
   }
 
   seatSummary(e) {
     const total = e.rows.reduce((s, r) => s + (Number(r.seats) || 0), 0);
-    if (total === 0) { return 'No layout yet'; }
+    if (total === 0) {
+      return "No layout yet";
+    }
     let booked = 0;
-    for (const b of e.bookings) { if (b.status === 'confirmed') { booked += b.seats.length; } }
-    return total + ' seats, ' + booked + ' booked';
+    for (const b of e.bookings) {
+      if (b.status === "confirmed") {
+        booked += b.seats.length;
+      }
+    }
+    return total + " seats, " + booked + " booked";
   }
 
   rowBooked(label) {
     const bs = this.bookedSet();
     let n = 0;
-    for (const k of Object.keys(bs)) { if (k.slice(0, k.lastIndexOf(' ')) === label) { n++; } }
+    for (const k of Object.keys(bs)) {
+      if (k.slice(0, k.lastIndexOf(" ")) === label) {
+        n++;
+      }
+    }
     return n;
   }
 
   seatState(label, n) {
-    const key = label + ' ' + n;
-    if (this.bookedSet()[key]) { return 'booked'; }
-    if (this.heldSet()[key]) { return 'held'; }
-    return 'free';
+    const key = label + " " + n;
+    if (this.bookedSet()[key]) {
+      return "booked";
+    }
+    if (this.heldSet()[key]) {
+      return "held";
+    }
+    return "free";
   }
 
   seatBg(label, n) {
     const s = this.seatState(label, n);
-    if (s === 'booked') { return this.brand.neutralColor; }
-    if (s === 'held') { return 'transparent'; }
+    if (s === "booked") {
+      return this.brand.neutralColor;
+    }
+    if (s === "held") {
+      return "transparent";
+    }
     return this.seatFree;
   }
 
   seatBorder(label, n) {
     const s = this.seatState(label, n);
-    if (s === 'booked') { return this.brand.neutralColor; }
-    if (s === 'held') { return this.brand.accentColor; }
+    if (s === "booked") {
+      return this.brand.neutralColor;
+    }
+    if (s === "held") {
+      return this.brand.accentColor;
+    }
     return this.line;
   }
 
   money(minor, currency) {
-    const symbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£' };
-    const sym = symbols[currency] || (currency + ' ');
+    const symbols = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
+    const sym = symbols[currency] || currency + " ";
     const major = minor / 100;
     const whole = Math.round(major).toString();
-    let out = '';
+    let out = "";
     let count = 0;
     for (let i = whole.length - 1; i >= 0; i--) {
       out = whole[i] + out;
       count++;
-      if (count % 3 === 0 && i > 0) { out = ',' + out; }
+      if (count % 3 === 0 && i > 0) {
+        out = "," + out;
+      }
     }
     return sym + out;
   }
 
-  parse(iso) { return new Date(iso); }
+  parse(iso) {
+    return new Date(iso);
+  }
 
   fmtShort(iso) {
-    if (!iso) { return '--'; }
+    if (!iso) {
+      return "--";
+    }
     const d = this.parse(iso);
-    return this.daysShort[d.getDay()] + ' ' + d.getDate() + ' ' + this.monthsShort[d.getMonth()] + ', ' + this.fmtTime(iso);
+    return (
+      this.daysShort[d.getDay()] +
+      " " +
+      d.getDate() +
+      " " +
+      this.monthsShort[d.getMonth()] +
+      ", " +
+      this.fmtTime(iso)
+    );
   }
 
   fmtLong(iso) {
-    if (!iso) { return '--'; }
+    if (!iso) {
+      return "--";
+    }
     const d = this.parse(iso);
-    return this.days[d.getDay()] + ' ' + d.getDate() + ' ' + this.months[d.getMonth()] + ' ' + d.getFullYear() + ' at ' + this.fmtTime(iso);
+    return (
+      this.days[d.getDay()] +
+      " " +
+      d.getDate() +
+      " " +
+      this.months[d.getMonth()] +
+      " " +
+      d.getFullYear() +
+      " at " +
+      this.fmtTime(iso)
+    );
   }
 
   fmtTime(iso) {
-    if (!iso) { return '--'; }
+    if (!iso) {
+      return "--";
+    }
     const d = this.parse(iso);
     const h = d.getHours();
     const m = d.getMinutes();
     const h12 = h % 12 === 0 ? 12 : h % 12;
-    return h12 + ':' + (m < 10 ? '0' + m : m) + ' ' + (h < 12 ? 'AM' : 'PM');
+    return h12 + ":" + (m < 10 ? "0" + m : m) + " " + (h < 12 ? "AM" : "PM");
   }
 
-  say(tone, text) { this.flash.set({ tone: tone, text: text }); }
+  say(tone, text) {
+    this.flash.set({ tone: tone, text: text });
+  }
 
   updateSelected(patch) {
     const id = this.selectedId();
@@ -1273,14 +1665,17 @@ export default class Screen extends ScreenBase {
   }
 
   /* ---------- actions ---------- */
-  clearFilters() { this.query.set(''); this.statusFilter.set('all'); }
+  clearFilters() {
+    this.query.set("");
+    this.statusFilter.set("all");
+  }
 
   refresh() {
     this.loading.set(true);
     setTimeout(() => {
       this.loading.set(false);
       this.stale.set(false);
-      this.syncedLabel.set('Synced just now');
+      this.syncedLabel.set("Synced just now");
     }, 700);
   }
 
@@ -1289,7 +1684,9 @@ export default class Screen extends ScreenBase {
     this.fDesc.set(e.description);
     this.fStart.set(e.start_datetime);
     this.fVenue.set(e.venue);
-    this.layoutRows.set(e.rows.map((r) => ({ key: r.key, row_label: r.row_label, seats: r.seats })));
+    this.layoutRows.set(
+      e.rows.map((r) => ({ key: r.key, row_label: r.row_label, seats: r.seats })),
+    );
     this.pIsFree.set(e.is_free);
     this.pPrice.set(e.price_minor / 100);
     this.pCurrency.set(e.currency);
@@ -1298,44 +1695,54 @@ export default class Screen extends ScreenBase {
 
   selectEvent(id) {
     const e = this.events().find((x) => x.id === id);
-    if (!e) { return; }
+    if (!e) {
+      return;
+    }
     this.selectedId.set(id);
     this.prevSelectedId.set(id);
-    this.mode.set(e.mine ? 'edit' : 'denied');
-    this.tab.set('details');
+    this.mode.set(e.mine ? "edit" : "denied");
+    this.tab.set("details");
     this.errors.set({});
-    this.publishError.set('');
-    this.layoutError.set('');
-    this.addRowError.set('');
+    this.publishError.set("");
+    this.layoutError.set("");
+    this.addRowError.set("");
     this.rowError.set(null);
     this.removeKey.set(null);
-    this.priceError.set('');
+    this.priceError.set("");
     this.confirmUnpublish.set(false);
-    this.bookingQuery.set('');
+    this.bookingQuery.set("");
     this.loadForms(e);
   }
 
   startCreate() {
     this.prevSelectedId.set(this.selectedId());
-    this.mode.set('create');
+    this.mode.set("create");
     this.errors.set({});
-    this.fTitle.set('');
-    this.fDesc.set('');
-    this.fStart.set('');
-    this.fVenue.set('');
+    this.fTitle.set("");
+    this.fDesc.set("");
+    this.fStart.set("");
+    this.fVenue.set("");
   }
 
   cancelCreate() {
     const id = this.prevSelectedId();
-    this.mode.set('edit');
-    if (id) { this.selectEvent(id); }
+    this.mode.set("edit");
+    if (id) {
+      this.selectEvent(id);
+    }
   }
 
   validateDetails() {
     const errs = {};
-    if (!this.fTitle().trim()) { errs.title = 'Give the event a title. It is what attendees see first in browsing.'; }
-    if (!this.fStart()) { errs.start = 'Set the date and time. Without it the event cannot be listed or booked.'; }
-    if (!this.fVenue().trim()) { errs.venue = 'Name the venue so attendees know where to go.'; }
+    if (!this.fTitle().trim()) {
+      errs.title = "Give the event a title. It is what attendees see first in browsing.";
+    }
+    if (!this.fStart()) {
+      errs.start = "Set the date and time. Without it the event cannot be listed or booked.";
+    }
+    if (!this.fVenue().trim()) {
+      errs.venue = "Name the venue so attendees know where to go.";
+    }
     this.errors.set(errs);
     return Object.keys(errs).length === 0;
   }
@@ -1343,7 +1750,10 @@ export default class Screen extends ScreenBase {
   saveDetails(ev) {
     ev.preventDefault();
     if (!this.validateDetails()) {
-      this.say('error', 'Nothing was saved. Fill in the fields marked below and try again; your other edits are still here.');
+      this.say(
+        "error",
+        "Nothing was saved. Fill in the fields marked below and try again; your other edits are still here.",
+      );
       return;
     }
     this.saving.set(true);
@@ -1352,34 +1762,42 @@ export default class Screen extends ScreenBase {
         title: this.fTitle().trim(),
         description: this.fDesc(),
         start_datetime: this.fStart(),
-        venue: this.fVenue().trim()
+        venue: this.fVenue().trim(),
       });
       this.saving.set(false);
-      this.say('ok', 'Details saved. The public event page now shows ' + this.fTitle().trim() + '.');
+      this.say(
+        "ok",
+        "Details saved. The public event page now shows " + this.fTitle().trim() + ".",
+      );
     }, 450);
   }
 
   discardDetails() {
     const e = this.selected();
-    if (!e) { return; }
+    if (!e) {
+      return;
+    }
     this.fTitle.set(e.title);
     this.fDesc.set(e.description);
     this.fStart.set(e.start_datetime);
     this.fVenue.set(e.venue);
     this.errors.set({});
-    this.say('ok', 'Edits discarded. The saved details are back.');
+    this.say("ok", "Edits discarded. The saved details are back.");
   }
 
   createEvent(ev) {
     ev.preventDefault();
     if (!this.validateDetails()) {
-      this.say('error', 'The draft was not created. Fill in the fields marked below; what you typed is kept.');
+      this.say(
+        "error",
+        "The draft was not created. Fill in the fields marked below; what you typed is kept.",
+      );
       return;
     }
     this.saving.set(true);
     setTimeout(() => {
       const n = 7161 + this.events().length;
-      const id = 'evt_' + n;
+      const id = "evt_" + n;
       const draft = {
         id: id,
         title: this.fTitle().trim(),
@@ -1388,115 +1806,193 @@ export default class Screen extends ScreenBase {
         venue: this.fVenue().trim(),
         is_free: false,
         price_minor: 0,
-        currency: 'INR',
-        status: 'draft',
-        cancellation_policy: '',
-        note: 'Draft created just now',
+        currency: "INR",
+        status: "draft",
+        cancellation_policy: "",
+        note: "Draft created just now",
         mine: true,
         held: [],
         rows: [],
-        bookings: []
+        bookings: [],
       };
       this.events.update((list) => [draft].concat(list));
       this.saving.set(false);
       this.selectEvent(id);
-      this.tab.set('seating');
-      this.say('ok', draft.title + ' is saved as a draft and hidden from the public. Lay out its seats, then publish it.');
+      this.tab.set("seating");
+      this.say(
+        "ok",
+        draft.title +
+          " is saved as a draft and hidden from the public. Lay out its seats, then publish it.",
+      );
     }, 450);
   }
 
   publish() {
     const e = this.selected();
-    if (!e) { return; }
-    const total = e.rows.reduce((s, r) => s + (Number(r.seats) || 0), 0);
-    if (total === 0) {
-      this.publishError.set('This event has no seating layout, so attendees would have nothing to choose. Add at least one row of seats, save the layout, then publish.');
-      this.tab.set('seating');
+    if (!e) {
       return;
     }
-    this.publishError.set('');
-    this.updateSelected({ status: 'published', note: 'Published just now' });
-    this.say('ok', e.title + ' is live. It now appears in public browsing and search, and its ' + total + ' seats are bookable.');
+    const total = e.rows.reduce((s, r) => s + (Number(r.seats) || 0), 0);
+    if (total === 0) {
+      this.publishError.set(
+        "This event has no seating layout, so attendees would have nothing to choose. Add at least one row of seats, save the layout, then publish.",
+      );
+      this.tab.set("seating");
+      return;
+    }
+    this.publishError.set("");
+    this.updateSelected({ status: "published", note: "Published just now" });
+    this.say(
+      "ok",
+      e.title +
+        " is live. It now appears in public browsing and search, and its " +
+        total +
+        " seats are bookable.",
+    );
   }
 
   unpublish() {
     const e = this.selected();
-    if (!e) { return; }
+    if (!e) {
+      return;
+    }
     this.confirmUnpublish.set(false);
-    this.updateSelected({ status: 'draft', note: 'Unpublished just now, hidden from the public' });
-    this.say('ok', e.title + ' is unpublished. It has gone from public browsing and search, and no new bookings can be made. Existing bookings are untouched.');
+    this.updateSelected({ status: "draft", note: "Unpublished just now, hidden from the public" });
+    this.say(
+      "ok",
+      e.title +
+        " is unpublished. It has gone from public browsing and search, and no new bookings can be made. Existing bookings are untouched.",
+    );
   }
 
-  askRemove(key) { this.removeKey.set(key); this.rowError.set(null); }
+  askRemove(key) {
+    this.removeKey.set(key);
+    this.rowError.set(null);
+  }
 
   removeRow(r) {
     const booked = this.rowBooked(r.row_label);
     if (booked > 0) {
-      this.rowError.set({ key: r.key, text: 'Row ' + r.row_label + ' has ' + booked + ' booked seats. Cancel those bookings first, then the row can be removed.' });
+      this.rowError.set({
+        key: r.key,
+        text:
+          "Row " +
+          r.row_label +
+          " has " +
+          booked +
+          " booked seats. Cancel those bookings first, then the row can be removed.",
+      });
       this.removeKey.set(null);
       return;
     }
     this.layoutRows.update((rows) => rows.filter((x) => x.key !== r.key));
     this.removeKey.set(null);
     this.rowError.set(null);
-    this.say('ok', 'Row ' + r.row_label + ' removed from the working layout. Save the layout to keep the change.');
+    this.say(
+      "ok",
+      "Row " +
+        r.row_label +
+        " removed from the working layout. Save the layout to keep the change.",
+    );
   }
 
   addRow(ev) {
     ev.preventDefault();
     const label = this.newRowLabel().trim().toUpperCase();
     const seats = Number(this.newRowSeats());
-    if (!label) { this.addRowError.set('Give the row a label, such as J. Attendees see it as part of each seat address.'); return; }
-    if (this.layoutRows().some((r) => (r.row_label || '').toUpperCase() === label)) {
-      this.addRowError.set('Row ' + label + ' already exists. Every row label has to be unique so each seat has one address.');
+    if (!label) {
+      this.addRowError.set(
+        "Give the row a label, such as J. Attendees see it as part of each seat address.",
+      );
       return;
     }
-    if (!seats || seats < 1 || seats > 60) { this.addRowError.set('Enter between 1 and 60 seats for this row.'); return; }
+    if (this.layoutRows().some((r) => (r.row_label || "").toUpperCase() === label)) {
+      this.addRowError.set(
+        "Row " +
+          label +
+          " already exists. Every row label has to be unique so each seat has one address.",
+      );
+      return;
+    }
+    if (!seats || seats < 1 || seats > 60) {
+      this.addRowError.set("Enter between 1 and 60 seats for this row.");
+      return;
+    }
     this.rowSeq.update((n) => n + 1);
-    const key = 'r' + this.rowSeq();
+    const key = "r" + this.rowSeq();
     this.layoutRows.update((rows) => rows.concat([{ key: key, row_label: label, seats: seats }]));
-    this.addRowError.set('');
-    this.newRowLabel.set('');
+    this.addRowError.set("");
+    this.newRowLabel.set("");
     this.justAdded.set(key);
-    setTimeout(() => { this.justAdded.set(null); }, 900);
+    setTimeout(() => {
+      this.justAdded.set(null);
+    }, 900);
   }
 
   saveLayout() {
     const rows = this.layoutRows();
     if (rows.length === 0) {
-      this.layoutError.set('A layout needs at least one row before it can be saved.');
+      this.layoutError.set("A layout needs at least one row before it can be saved.");
       return;
     }
     const seen = {};
     for (const r of rows) {
-      const label = (r.row_label || '').trim().toUpperCase();
+      const label = (r.row_label || "").trim().toUpperCase();
       const n = Number(r.seats);
-      if (!label) { this.layoutError.set('One row has no label. Every row needs one so each seat is addressed by row and seat number.'); return; }
-      if (seen[label]) { this.layoutError.set('Row ' + label + ' appears twice. Row labels have to be unique.'); return; }
+      if (!label) {
+        this.layoutError.set(
+          "One row has no label. Every row needs one so each seat is addressed by row and seat number.",
+        );
+        return;
+      }
+      if (seen[label]) {
+        this.layoutError.set("Row " + label + " appears twice. Row labels have to be unique.");
+        return;
+      }
       seen[label] = true;
-      if (!n || n < 1 || n > 60) { this.layoutError.set('Row ' + label + ' needs between 1 and 60 seats.'); return; }
+      if (!n || n < 1 || n > 60) {
+        this.layoutError.set("Row " + label + " needs between 1 and 60 seats.");
+        return;
+      }
     }
-    this.layoutError.set('');
+    this.layoutError.set("");
     this.saving.set(true);
     setTimeout(() => {
-      const clean = rows.map((r) => ({ key: r.key, row_label: (r.row_label || '').trim().toUpperCase(), seats: Number(r.seats) }));
+      const clean = rows.map((r) => ({
+        key: r.key,
+        row_label: (r.row_label || "").trim().toUpperCase(),
+        seats: Number(r.seats),
+      }));
       this.updateSelected({ rows: clean });
-      this.layoutRows.set(clean.map((r) => ({ key: r.key, row_label: r.row_label, seats: r.seats })));
+      this.layoutRows.set(
+        clean.map((r) => ({ key: r.key, row_label: r.row_label, seats: r.seats })),
+      );
       this.saving.set(false);
-      this.publishError.set('');
+      this.publishError.set("");
       const total = clean.reduce((s, r) => s + r.seats, 0);
-      this.say('ok', 'Layout saved: ' + clean.length + ' rows, ' + total + ' seats, each one addressed by its row label and seat number.');
+      this.say(
+        "ok",
+        "Layout saved: " +
+          clean.length +
+          " rows, " +
+          total +
+          " seats, each one addressed by its row label and seat number.",
+      );
     }, 450);
   }
 
   discardLayout() {
     const e = this.selected();
-    if (!e) { return; }
-    this.layoutRows.set(e.rows.map((r) => ({ key: r.key, row_label: r.row_label, seats: r.seats })));
-    this.layoutError.set('');
-    this.addRowError.set('');
+    if (!e) {
+      return;
+    }
+    this.layoutRows.set(
+      e.rows.map((r) => ({ key: r.key, row_label: r.row_label, seats: r.seats })),
+    );
+    this.layoutError.set("");
+    this.addRowError.set("");
     this.rowError.set(null);
-    this.say('ok', 'Layout changes discarded. The saved rows are back.');
+    this.say("ok", "Layout changes discarded. The saved rows are back.");
   }
 
   savePricing(ev) {
@@ -1504,34 +2000,44 @@ export default class Screen extends ScreenBase {
     const free = this.pIsFree();
     const v = Number(this.pPrice());
     if (!free && (!v || v <= 0)) {
-      this.priceError.set('Enter a price above zero, or mark the event as free.');
-      this.say('error', 'Pricing was not saved. Set a price above zero, or tick the free event box.');
+      this.priceError.set("Enter a price above zero, or mark the event as free.");
+      this.say(
+        "error",
+        "Pricing was not saved. Set a price above zero, or tick the free event box.",
+      );
       return;
     }
-    this.priceError.set('');
+    this.priceError.set("");
     this.saving.set(true);
     setTimeout(() => {
       this.updateSelected({
         is_free: free,
         price_minor: free ? 0 : Math.round(v * 100),
         currency: this.pCurrency(),
-        cancellation_policy: this.pPolicy()
+        cancellation_policy: this.pPolicy(),
       });
       this.saving.set(false);
-      this.say('ok', free
-        ? 'Saved. This event shows as free entry, and attendees book without any price being charged.'
-        : 'Saved. Attendees now see ' + this.money(Math.round(v * 100), this.pCurrency()) + ' per seat on the event page and through booking.');
+      this.say(
+        "ok",
+        free
+          ? "Saved. This event shows as free entry, and attendees book without any price being charged."
+          : "Saved. Attendees now see " +
+              this.money(Math.round(v * 100), this.pCurrency()) +
+              " per seat on the event page and through booking.",
+      );
     }, 450);
   }
 
   discardPricing() {
     const e = this.selected();
-    if (!e) { return; }
+    if (!e) {
+      return;
+    }
     this.pIsFree.set(e.is_free);
     this.pPrice.set(e.price_minor / 100);
     this.pCurrency.set(e.currency);
     this.pPolicy.set(e.cancellation_policy);
-    this.priceError.set('');
-    this.say('ok', 'Pricing changes discarded.');
+    this.priceError.set("");
+    this.say("ok", "Pricing changes discarded.");
   }
 }
