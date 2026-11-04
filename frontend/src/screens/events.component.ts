@@ -1,72 +1,17 @@
 // @ts-nocheck -- generated from the approved design under its plain-JavaScript contract; not hand-written TypeScript.
- 
-import { Component, signal, computed } from "@angular/core";
+
+import { Component, signal, computed, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { Router } from "@angular/router";
 
 import { ScreenBase } from "@/lib/screen-base";
 import { UI_KIT } from "@/lib/ui";
+import { apiFetch } from "@/lib/api";
+
 const PRODUCT = "Event booking";
 const SCREEN = "Events";
 const HAIRLINE = "1px solid rgba(255,255,255,0.10)";
-
-// Public listing: published events only. Drafts are held back by the organiser
-// and never reach this array (AC-002).
-const EVENTS = [
-  {
-    ref: "EVT-2411",
-    title: "Khayal at Dusk: Kaushiki Chakraborty",
-    venue: "The Music Academy, Chennai",
-    when: "Fri 14 Nov · 7:30 PM",
-    price: "₹1,450",
-    isFree: false,
-    status: "published",
-  },
-  {
-    ref: "EVT-2412",
-    title: "Letterpress & Lithograph Workshop",
-    venue: "Kala Ghoda Studio, Mumbai",
-    when: "Sat 22 Nov · 10:00 AM",
-    price: "Free",
-    isFree: true,
-    status: "published",
-  },
-  {
-    ref: "EVT-2413",
-    title: "Chamber Series: Schubert Octet",
-    venue: "Bangalore International Centre",
-    when: "Sun 30 Nov · 6:00 PM",
-    price: "₹900",
-    isFree: false,
-    status: "published",
-  },
-  {
-    ref: "EVT-2414",
-    title: "Monsoon Shorts: Indie Film Night",
-    venue: "Alliance Française, New Delhi",
-    when: "Thu 4 Dec · 8:00 PM",
-    price: "₹350",
-    isFree: false,
-    status: "published",
-  },
-  {
-    ref: "EVT-2415",
-    title: "Rooftop Qawwali with Nizami Bandhu",
-    venue: "Narain Niwas, Jaipur",
-    when: "Sat 13 Dec · 9:00 PM",
-    price: "₹2,200",
-    isFree: false,
-    status: "published",
-  },
-  {
-    ref: "EVT-2416",
-    title: "Pondicherry Jazz Weekender",
-    venue: "Promenade Lawns, Puducherry",
-    when: "Sat 10 Jan · 5:00 PM",
-    price: "₹1,800",
-    isFree: false,
-    status: "draft",
-  },
-];
+const SEARCH_DEBOUNCE_MS = 300;
 
 const template = `
 <div class="space-y-6" [style.color]="brand.primaryColor" [style.font-family]="brand.fontBody">
@@ -85,7 +30,8 @@ const template = `
     <label uiLabel for="event-search" class="sr-only">Search published events by title or venue</label>
     <input id="event-search"
            type="search"
-           [(ngModel)]="query"
+           [ngModel]="query()"
+           (ngModelChange)="onQueryChange($event)"
            placeholder="Search by title, venue or city"
            class="h-9 flex-1 bg-transparent text-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
            [style.border-bottom]="hairline"
@@ -102,11 +48,27 @@ const template = `
     }
   </div>
 
-  @if (shown().length > 0) {
+  @if (status() === 'loading') {
+    <div role="status" aria-live="polite" class="px-5 py-10 text-center" [style.border-top]="hairline">
+      <p class="text-sm" [style.color]="brand.neutralColor">Loading events…</p>
+    </div>
+  } @else if (status() === 'error') {
+    <div role="alert" class="px-5 py-10 text-center" [style.border-top]="hairline">
+      <h2 class="text-2xl" [style.font-family]="brand.fontHeading">We couldn't load events</h2>
+      <p class="mx-auto mt-2 max-w-md text-sm" [style.color]="brand.neutralColor">
+        Something went wrong reaching the ticket office. Please check your connection and try again.
+      </p>
+      <button type="button"
+              class="mt-6 text-xs uppercase focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+              (click)="fetchEvents()"
+              [style.color]="brand.accentColor"
+              [style.letter-spacing]="track"
+              [style.outline-color]="brand.accentColor">Try again</button>
+    </div>
+  } @else if (shown().length > 0) {
     <table class="w-full text-sm" style="font-variant-numeric: tabular-nums">
       <thead>
         <tr class="text-left text-xs uppercase" [style.color]="brand.neutralColor" [style.letter-spacing]="track">
-          <th scope="col" class="py-3 font-normal">Ref</th>
           <th scope="col" class="py-3 font-normal">Event</th>
           <th scope="col" class="py-3 font-normal">Venue</th>
           <th scope="col" class="py-3 font-normal">When</th>
@@ -114,26 +76,25 @@ const template = `
         </tr>
       </thead>
       <tbody>
-        @for (e of shown(); track e.ref) {
+        @for (e of shown(); track e.id) {
           <tr class="transition-colors hover:bg-white/[0.03]" [style.border-top]="hairline">
-            <td class="py-4 tabular-nums" [style.color]="brand.accentColor">{{ e.ref }}</td>
             <td class="py-4" [style.font-family]="brand.fontHeading">
               <button type="button"
                       class="text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                      (click)="navigate('event-detail')"
-                      [attr.aria-label]="'Open ' + e.title + ' — ' + e.when"
+                      (click)="openEvent(e.id)"
+                      [attr.aria-label]="'Open ' + e.title + ' — ' + formatWhen(e.start_datetime)"
                       [style.font-family]="brand.fontHeading"
                       [style.color]="brand.primaryColor"
                       [style.outline-color]="brand.accentColor">{{ e.title }}</button>
             </td>
             <td class="py-4">{{ e.venue }}</td>
-            <td class="py-4 text-xs uppercase tabular-nums" [style.color]="brand.neutralColor" [style.letter-spacing]="track">{{ e.when }}</td>
-            <td class="py-4 text-right tabular-nums">{{ e.price }}</td>
+            <td class="py-4 text-xs uppercase tabular-nums" [style.color]="brand.neutralColor" [style.letter-spacing]="track">{{ formatWhen(e.start_datetime) }}</td>
+            <td class="py-4 text-right tabular-nums">{{ priceLabel(e) }}</td>
           </tr>
         }
       </tbody>
     </table>
-  } @else if (published.length === 0) {
+  } @else if (events().length === 0 && query().trim() === '') {
     <div class="px-5 py-10 text-center" [style.border-top]="hairline">
       <h2 class="text-2xl" [style.font-family]="brand.fontHeading">Nothing on sale just yet</h2>
       <p class="mx-auto mt-2 max-w-md text-sm" [style.color]="brand.neutralColor">
@@ -150,7 +111,7 @@ const template = `
     <div class="px-5 py-10 text-center" [style.border-top]="hairline">
       <h2 class="text-2xl" [style.font-family]="brand.fontHeading">No events found</h2>
       <p class="mx-auto mt-2 max-w-md text-sm" [style.color]="brand.neutralColor">
-        We checked all {{ published.length }} published events for {{ describeSearch() }} and found no match. Try a city, a venue, or part of the title.
+        We looked for {{ describeSearch() }} and found no match. Try a city, a venue, or part of the title.
       </p>
       <button type="button"
               class="mt-6 text-xs uppercase focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
@@ -174,27 +135,56 @@ export default class Screen extends ScreenBase {
   hairline = HAIRLINE;
   track = "0.18em";
 
-  published = EVENTS.filter((e) => e.status === "published");
-
   filters = [
     { id: "all", label: "All" },
     { id: "free", label: "Free" },
     { id: "paid", label: "Paid" },
   ];
 
+  // Published events from the live API only (AC-001, AC-002): no sample array,
+  // and the API never returns unpublished events.
+  events = signal([]);
+  status = signal("loading");
   query = signal("");
   filter = signal("all");
 
+  private searchTimer = null;
+  // Event ids come from the API verbatim (e.g. UUIDs with hyphens, or ids with
+  // underscores) and must reach the route untouched -- `navigate()`'s slug rules
+  // would mangle them, so this link goes through the router directly.
+  private readonly router = inject(Router);
+
+  constructor() {
+    super();
+    this.fetchEvents();
+  }
+
   shown = computed(() => {
-    const q = this.query().trim().toLowerCase();
     const f = this.filter();
-    return this.published.filter((e) => {
-      const matches =
-        q === "" || e.title.toLowerCase().includes(q) || e.venue.toLowerCase().includes(q);
-      const priced = f === "all" || (f === "free" && e.isFree) || (f === "paid" && !e.isFree);
-      return matches && priced;
+    return this.events().filter((e) => {
+      return f === "all" || (f === "free" && e.is_free) || (f === "paid" && !e.is_free);
     });
   });
+
+  fetchEvents() {
+    this.status.set("loading");
+    const q = this.query().trim();
+    const path = q ? `/api/events?q=${encodeURIComponent(q)}` : "/api/events";
+    apiFetch(path)
+      .then((data) => {
+        this.events.set(Array.isArray(data) ? data : []);
+        this.status.set("ready");
+      })
+      .catch(() => {
+        this.status.set("error");
+      });
+  }
+
+  onQueryChange(value) {
+    this.query.set(value);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.fetchEvents(), SEARCH_DEBOUNCE_MS);
+  }
 
   describeSearch() {
     const q = this.query().trim();
@@ -209,7 +199,31 @@ export default class Screen extends ScreenBase {
   }
 
   resetSearch() {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
     this.query.set("");
     this.filter.set("all");
+    this.fetchEvents();
+  }
+
+  openEvent(id) {
+    void this.router.navigateByUrl(`/event-detail/${id}`);
+  }
+
+  formatWhen(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const datePart = d.toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+    const timePart = d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+    return `${datePart} · ${timePart}`;
+  }
+
+  priceLabel(e) {
+    if (e.is_free) return "Free";
+    const v = (e.price_minor || 0) / 100;
+    return "₹" + v.toLocaleString("en-IN");
   }
 }

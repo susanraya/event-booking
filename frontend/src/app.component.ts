@@ -67,6 +67,7 @@ export const routes: Routes = [
     children: [
       { path: "events", component: EventsScreen },
       { path: "event-detail", component: EventDetailScreen },
+      { path: "event-detail/:id", component: EventDetailScreen },
       { path: "my-booking", component: MyBookingScreen },
       { path: "organiser-sign-in", component: OrganiserSignInScreen },
       {

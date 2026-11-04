@@ -23,6 +23,7 @@ public class EventService {
 
   private static final String PUBLISHED = "published";
   private static final String DRAFT = "draft";
+  private static final String AVAILABLE = "available";
 
   private final EventRepository eventRepository;
   private final OrganiserRepository organiserRepository;
@@ -144,19 +145,38 @@ public class EventService {
     }
   }
 
-  /** AC-001, AC-004, AC-005: published events only. */
-  public List<EventResponse> listPublishedEvents() {
-    return eventRepository.findByStatus(PUBLISHED).stream().map(this::toResponse).toList();
+  /**
+   * AC-001, AC-004, AC-005: published events only, optionally filtered by a case-insensitive,
+   * partial-match keyword over title or venue. A blank or absent {@code q} behaves as no filter; no
+   * match yields an empty list, never an error.
+   */
+  public List<EventResponse> listPublishedEvents(String q) {
+    String term = q == null ? "" : q.strip().toLowerCase();
+    return eventRepository.findByStatus(PUBLISHED).stream()
+        .filter(e ->
+            term.isEmpty()
+                || e.getTitle().toLowerCase().contains(term)
+                || e.getVenue().toLowerCase().contains(term))
+        .map(this::toResponse)
+        .toList();
   }
 
-  /** AC-006, AC-008, AC-034: 404 unless the event is published. */
+  /**
+   * AC-006, AC-007, AC-008, AC-034: 404 with a plain-language message unless the event is
+   * published; the detail also carries the count of still-available seats.
+   */
   public EventResponse getPublishedEvent(String id) {
     Event event =
         eventRepository
             .findByIdAndStatus(id, PUBLISHED)
-            .orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
-    return toResponse(event);
+            .orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "This event is not available"));
+    int seatsAvailable =
+        (int)
+            seatRepository.findByEventIdOrderByRowLabelAscSeatNumberAsc(id).stream()
+                .filter(seat -> AVAILABLE.equals(seat.getStatus()))
+                .count();
+    return toResponse(event, seatsAvailable);
   }
 
   private void validateRequired(String title, LocalDateTime startDatetime, String venue) {
@@ -181,6 +201,10 @@ public class EventService {
   }
 
   private EventResponse toResponse(Event event) {
+    return toResponse(event, null);
+  }
+
+  private EventResponse toResponse(Event event, Integer seatsAvailable) {
     return new EventResponse(
         event.getId(),
         event.getTitle(),
@@ -190,6 +214,7 @@ public class EventService {
         event.getIsFree(),
         event.getPriceMinor(),
         event.getCurrency(),
-        event.getStatus());
+        event.getStatus(),
+        seatsAvailable);
   }
 }

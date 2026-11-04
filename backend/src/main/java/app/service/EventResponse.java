@@ -19,4 +19,5 @@ public record EventResponse(
     Boolean isFree,
     Integer priceMinor,
     String currency,
-    String status) {}
+    String status,
+    Integer seatsAvailable) {}
