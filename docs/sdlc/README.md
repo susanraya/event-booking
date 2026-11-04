@@ -5,7 +5,7 @@
 <!-- sdlc:auto:start overview -->
 event booking app: events, seats, bookings, confirmation email
 
-**Documentation version:** v3
+**Documentation version:** v4
 <!-- sdlc:auto:end overview -->
 
 ## Contents
@@ -27,11 +27,11 @@ event booking app: events, seats, bookings, confirmation email
 | [API reference](development/api-reference.md) | 1 route |
 | [Test report](testing/test-report.md) | not run yet |
 | [Tests](testing/test-cases.md) | 0 tests |
-| [Deployment guide](deployment/deployment-guide.md) | not deployed yet |
-| [Runbook](deployment/runbook.md) | not deployed yet |
-| [Release notes](deployment/release-notes.md) | 0 releases |
+| [Deployment guide](deployment/deployment-guide.md) | deployed |
+| [Runbook](deployment/runbook.md) | deployed |
+| [Release notes](deployment/release-notes.md) | 1 release |
 | [Traceability matrix](traceability-matrix.md) | 21 requirements |
-| [Changelog](CHANGELOG.md) | 3 versions |
+| [Changelog](CHANGELOG.md) | 4 versions |
 <!-- sdlc:auto:end contents -->
 
 ## Open gaps
@@ -83,7 +83,12 @@ event booking app: events, seats, bookings, confirmation email
 
 ### Deployment
 
-- No deployment recorded yet -- cannot confirm the India (Mumbai) hosting requirement (NFR-004) has actually been implemented in practice.
+- Deployment date/time not provided.
+- No approver or responsible party recorded for this release.
+- No release notes or changelog indicating which requirements (US-001..US-021) or tickets are included in version 3ccd7131dd04 -- cannot establish related_ids traceability.
+- Environment type (staging vs. production) not specified for the given URLs.
+- No rollback plan, deployment method, or infrastructure details (e.g., CI/CD pipeline, deployment strategy) recorded.
+- No post-deployment verification, smoke-test, or monitoring results recorded.
 
 ### Maintenance
 
