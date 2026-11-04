@@ -5,7 +5,7 @@
 <!-- sdlc:auto:start overview -->
 event booking app: events, seats, bookings, confirmation email
 
-**Documentation version:** v2
+**Documentation version:** v3
 <!-- sdlc:auto:end overview -->
 
 ## Contents
@@ -15,14 +15,14 @@ event booking app: events, seats, bookings, confirmation email
 |---|---|
 | [Requirements](requirements/README.md) | v1 approved |
 | [Architecture](architecture/README.md) | 9 entries |
-| [Development](development/README.md) | 1 entry |
+| [Development](development/README.md) | 33 entries |
 | [Testing](testing/README.md) | 1 entry |
 | [Deployment](deployment/README.md) | 1 entry |
 | [Maintenance](maintenance/README.md) | 1 entry |
 | [Data model](architecture/data-model.md) | generated |
 | [API (OpenAPI)](architecture/api/openapi.yaml) | generated |
 | [Decisions (ADRs)](architecture/adr/README.md) | 4 decisions |
-| [Sprint plan](development/sprint-plan.md) | not generated yet |
+| [Sprint plan](development/sprint-plan.md) | 5 sprints |
 | [Developer guide](development/developer-guide.md) | generated |
 | [API reference](development/api-reference.md) | 1 route |
 | [Test report](testing/test-report.md) | not run yet |
@@ -31,7 +31,7 @@ event booking app: events, seats, bookings, confirmation email
 | [Runbook](deployment/runbook.md) | not deployed yet |
 | [Release notes](deployment/release-notes.md) | 0 releases |
 | [Traceability matrix](traceability-matrix.md) | 21 requirements |
-| [Changelog](CHANGELOG.md) | 2 versions |
+| [Changelog](CHANGELOG.md) | 3 versions |
 <!-- sdlc:auto:end contents -->
 
 ## Open gaps
@@ -59,7 +59,22 @@ event booking app: events, seats, bookings, confirmation email
 
 ### Development
 
-- Development has not started -- no tickets, code, or implementation notes available.
+- No execution/completion status (code, PRs, test results) reported for any backlog item -- this entry documents the plan only.
+- No approval metadata (approver, date) was provided for the plan.
+- Item-to-sprint assignment is inferred from the goal description text; the plan input did not explicitly list item IDs per sprint.
+- No status reported on whether Sprint 1 work was started, completed, or carried over.
+- Item-to-sprint assignment inferred from goal text, not explicit in input.
+- No completion/progress status reported.
+- US-021 (India hosting) is the only DPDP-epic item not in this sprint -- it was matched to Sprint 2 instead; confirm this split is correct.
+- Epic has no assigned role/owner.
+- No implementation status reported.
+- Epic name references DPDP (India's data protection law); no explicit compliance/regulation checklist was supplied in this input to confirm full coverage -- recommend a dedicated compliance review beyond US-020/US-021.
+- No implementation status, code, or test evidence reported.
+- No implementation status, code, or test evidence reported for the story or any of its 4 tasks.
+- No implementation status, code, or test evidence reported for the story or any of its 3 tasks.
+- No explicit DPDP regulation checklist supplied in this input to confirm this story's scope fully satisfies consent-withdrawal obligations.
+- No implementation status, code, or infrastructure evidence reported.
+- No explicit DPDP data-residency checklist supplied in this input to confirm full regulatory coverage.
 
 ### Testing
 
