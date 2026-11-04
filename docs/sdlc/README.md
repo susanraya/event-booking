@@ -5,7 +5,7 @@
 <!-- sdlc:auto:start overview -->
 event booking app: events, seats, bookings, confirmation email
 
-**Documentation version:** v1
+**Documentation version:** v2
 <!-- sdlc:auto:end overview -->
 
 ## Contents
@@ -15,7 +15,7 @@ event booking app: events, seats, bookings, confirmation email
 |---|---|
 | [Requirements](requirements/README.md) | v1 approved |
 | [Architecture](architecture/README.md) | 14 entries |
-| [Development](development/README.md) | 11 entries |
+| [Development](development/README.md) | 13 entries |
 | [Testing](testing/README.md) | 1 entry |
 | [Deployment](deployment/README.md) | 1 entry |
 | [Maintenance](maintenance/README.md) | 1 entry |
@@ -26,12 +26,12 @@ event booking app: events, seats, bookings, confirmation email
 | [Developer guide](development/developer-guide.md) | generated |
 | [API reference](development/api-reference.md) | 12 routes |
 | [Test report](testing/test-report.md) | not run yet |
-| [Tests](testing/test-cases.md) | 41 tests |
+| [Tests](testing/test-cases.md) | 73 tests |
 | [Deployment guide](deployment/deployment-guide.md) | not deployed yet |
 | [Runbook](deployment/runbook.md) | not deployed yet |
 | [Release notes](deployment/release-notes.md) | 0 releases |
 | [Traceability matrix](traceability-matrix.md) | 21 requirements |
-| [Changelog](CHANGELOG.md) | 1 version |
+| [Changelog](CHANGELOG.md) | 2 versions |
 <!-- sdlc:auto:end contents -->
 
 ## Open gaps
@@ -52,13 +52,14 @@ event booking app: events, seats, bookings, confirmation email
 
 ### Development
 
-- Backlog items in the plan input are not explicitly tagged to a sprint; any sprint-to-story mapping elsewhere in this documentation is inferred from the goal text, not an explicit field.
-- No delivery ticket recorded for US-001, US-002 or US-003 despite the development run being marked 'completed'.
-- No delivery tickets recorded for any of US-004 through US-009 despite the development run being marked 'completed'.
-- No delivery tickets recorded for US-010 or US-011 despite the development run being marked 'completed'.
-- US-016, US-017 and US-018 have no recorded delivery ticket despite the development run being marked 'completed', even though sibling stories in the same epic (US-012-015) were delivered.
-- No delivery ticket recorded for US-019 despite the development run being marked 'completed'.
-- No delivery ticket recorded for US-020 or US-021 despite the development run being marked 'completed' -- India hosting in particular is foundational and its unconfirmed delivery is a notable risk.
+- Plan input does not explicitly state which sprint each backlog item belongs to; sprint-item groupings in the per-sprint entries below are inferred from each sprint's goal description, not an explicit mapping field.
+- US-007 (Confirm consent and adult eligibility at booking) is not clearly referenced by any sprint's goal text, so its planned sprint is unknown.
+- Item-to-sprint assignment inferred from goal text, not explicitly stated in the plan input.
+- US-007 (consent and adult-eligibility confirmation) is part of the same booking flow but is not named in this sprint's goal; its sprint placement is unclear.
+- Reason for skipping India-region hosting is not provided.
+- No alternative timeline or follow-up plan for this DPDP-relevant data-residency requirement is recorded.
+- Discrepancy: run status says 'completed' while 15 of 21 planned stories (and all associated subtasks) have no delivery, in-progress, or skipped status recorded -- it is unclear whether this work was actually completed and simply not reported, or not started.
+- Seat locking, booking creation/confirmation email, booking lookup/cancellation, organiser sign-in/event/pricing/layout management, bookings view, and venue check-in -- the core booking and organiser functionality -- have no confirmed build status in this input.
 
 ### Testing
 

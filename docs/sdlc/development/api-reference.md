@@ -5,12 +5,12 @@
 <!-- sdlc:auto:start endpoints -->
 | Method | Path | Handler | Source | Summary |
 |---|---|---|---|---|
-| POST | /api/auth/login | postApiAuthLogin | `backend/src/main/java/app/api/ApiController.java:71` | Organiser sign-in; generic error on failure (AC-031, AC-032, NFR-009). |
-| GET | /api/events | getApiEvents | `backend/src/main/java/app/api/ApiController.java:44` | List published events with optional keyword search over title and venue (AC-001, AC-004, |
-| GET | /api/events/{id} | getApiEventsById | `backend/src/main/java/app/api/ApiController.java:50` | Public event detail incl. price or free; not-available if unpublished (AC-006, AC-008). |
-| POST | /api/events/{id}/checkin | postApiEventsByIdCheckin | `backend/src/main/java/app/api/ApiController.java:81` | Validate a scanned QR token and check in once; warns if used, invalid, cancelled or wrong event |
-| POST | /api/events/{id}/locks | postApiEventsByIdLocks | `backend/src/main/java/app/api/ApiController.java:65` | Lock selected seats for checkout, returns a hold token and expiry; conflict if any seat already |
-| GET | /api/events/{id}/seats | getApiEventsByIdSeats | `backend/src/main/java/app/api/ApiController.java:56` | Seating layout with per-seat availability (AC-009, AC-011). |
+| POST | /api/auth/login | postApiAuthLogin | `backend/src/main/java/app/api/ApiController.java:72` | Organiser sign-in; generic error on failure (AC-031, AC-032, NFR-009). |
+| GET | /api/events | getApiEvents | `backend/src/main/java/app/api/ApiController.java:45` | List published events with optional keyword search over title and venue (AC-001, AC-004, |
+| GET | /api/events/{id} | getApiEventsById | `backend/src/main/java/app/api/ApiController.java:51` | Public event detail incl. price or free; not-available if unpublished (AC-006, AC-008). |
+| POST | /api/events/{id}/checkin | postApiEventsByIdCheckin | `backend/src/main/java/app/api/ApiController.java:82` | Validate a scanned QR token and check in once; warns if used, invalid, cancelled or wrong event |
+| POST | /api/events/{id}/locks | postApiEventsByIdLocks | `backend/src/main/java/app/api/ApiController.java:66` | Lock selected seats for checkout, returns a hold token and expiry; conflict if any seat already |
+| GET | /api/events/{id}/seats | getApiEventsByIdSeats | `backend/src/main/java/app/api/ApiController.java:57` | Seating layout with per-seat availability (AC-009, AC-011). |
 | GET | /api/organiser/events | getApiOrganiserEvents | `backend/src/main/java/app/webapp/WebAppController.java:43` | Organiser dashboard listing events with status and date/time (AC-043). |
 | POST | /api/organiser/events | postApiOrganiserEvents | `backend/src/main/java/app/webapp/WebAppController.java:49` | Create a draft event (AC-034, AC-036). |
 | PUT | /api/organiser/events/{id} | putApiOrganiserEventsById | `backend/src/main/java/app/webapp/WebAppController.java:60` | Edit event details, pricing/free flag, and publish/unpublish (AC-035, AC-039 to AC-042). |
@@ -29,5 +29,5 @@
 <!-- sdlc:auto:end drift -->
 
 <!-- sdlc:auto:start source -->
-Generated from commit `eb57ee9`
+Generated from commit `fba98a5`
 <!-- sdlc:auto:end source -->
