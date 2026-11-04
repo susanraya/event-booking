@@ -3,6 +3,8 @@ package app.service;
 import app.model.Event;
 import app.model.EventRepository;
 import app.model.OrganiserRepository;
+import app.model.Seat;
+import app.model.SeatRepository;
 import app.security.AuditLogService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,14 +26,17 @@ public class EventService {
 
   private final EventRepository eventRepository;
   private final OrganiserRepository organiserRepository;
+  private final SeatRepository seatRepository;
   private final AuditLogService auditLogService;
 
   public EventService(
       EventRepository eventRepository,
       OrganiserRepository organiserRepository,
+      SeatRepository seatRepository,
       AuditLogService auditLogService) {
     this.eventRepository = eventRepository;
     this.organiserRepository = organiserRepository;
+    this.seatRepository = seatRepository;
     this.auditLogService = auditLogService;
   }
 
@@ -61,7 +66,10 @@ public class EventService {
     return toResponse(event);
   }
 
-  /** AC-035, AC-039, AC-040, AC-036: edits details, pricing/free flag and status. */
+  /**
+   * AC-035, AC-039, AC-040, AC-036: edits details, pricing/free flag and status (US-016-1:
+   * publish/unpublish, AC-041, AC-042). Events owned by another organiser are 404, never leaked.
+   */
   public EventResponse updateEvent(
       String organiserId, String eventId, UpdateEventRequest request, String ipAddress) {
     Event event =
@@ -70,6 +78,14 @@ public class EventService {
             .filter(e -> e.getOrganiser().getId().equals(organiserId))
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+
+    boolean statusOnly =
+        request.title() == null && request.startDatetime() == null && request.venue() == null;
+    if (statusOnly) {
+      applyStatusChange(event, request.status(), organiserId, ipAddress);
+      eventRepository.save(event);
+      return toResponse(event);
+    }
 
     validateRequired(request.title(), request.startDatetime(), request.venue());
     boolean free = Boolean.TRUE.equals(request.isFree());
@@ -87,13 +103,45 @@ public class EventService {
       event.setPriceMinor(request.priceMinor());
       event.setCurrency(request.currency());
     }
-    if (request.status() != null && !request.status().isBlank()) {
-      event.setStatus(request.status());
-    }
+    applyStatusChange(event, request.status(), organiserId, ipAddress);
     eventRepository.save(event);
 
     auditLogService.record("event_updated", "event", event.getId(), organiserId, ipAddress);
     return toResponse(event);
+  }
+
+  /**
+   * AC-041: publishing a draft event requires a seating layout; AC-042: unpublishing a published
+   * event returns it to draft. Each transition writes its own AuditLog row (NFR-005: retained for
+   * at least 180 days by AuditLogService's purge policy). A no-op (status unchanged, or absent)
+   * writes nothing.
+   */
+  private void applyStatusChange(
+      Event event, String requestedStatus, String organiserId, String ipAddress) {
+    if (requestedStatus == null || requestedStatus.isBlank()) {
+      return;
+    }
+    if (!PUBLISHED.equals(requestedStatus) && !DRAFT.equals(requestedStatus)) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Status must be 'draft' or 'published'");
+    }
+    if (requestedStatus.equals(event.getStatus())) {
+      return;
+    }
+    if (PUBLISHED.equals(requestedStatus)) {
+      List<Seat> seats = seatRepository.findByEventIdOrderByRowLabelAscSeatNumberAsc(event.getId());
+      if (seats.isEmpty()) {
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "This event cannot be published because it has no seating layout; define the seating"
+                + " layout before publishing");
+      }
+      event.setStatus(PUBLISHED);
+      auditLogService.record("event_published", "event", event.getId(), organiserId, ipAddress);
+    } else {
+      event.setStatus(DRAFT);
+      auditLogService.record("event_unpublished", "event", event.getId(), organiserId, ipAddress);
+    }
   }
 
   /** AC-001, AC-004, AC-005: published events only. */
