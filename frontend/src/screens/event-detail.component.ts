@@ -708,7 +708,9 @@ export default class Screen extends ScreenBase {
 
   // Price or Free, read from the API (AC-039, AC-040). Shown in the detail stat and the
   // "about this evening" summary -- the two booking-flow headings that quote a price.
-  priceLabel = computed(() => (this.event().is_free ? "Free" : this.money(this.event().price_minor)));
+  priceLabel = computed(() =>
+    this.event().is_free ? "Free" : this.money(this.event().price_minor),
+  );
 
   constructor() {
     super();
