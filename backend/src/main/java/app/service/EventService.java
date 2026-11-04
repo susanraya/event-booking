@@ -3,6 +3,8 @@ package app.service;
 import app.model.Event;
 import app.model.EventRepository;
 import app.model.OrganiserRepository;
+import app.model.Seat;
+import app.model.SeatRepository;
 import app.security.AuditLogService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,17 +23,21 @@ public class EventService {
 
   private static final String PUBLISHED = "published";
   private static final String DRAFT = "draft";
+  private static final String AVAILABLE = "available";
 
   private final EventRepository eventRepository;
   private final OrganiserRepository organiserRepository;
+  private final SeatRepository seatRepository;
   private final AuditLogService auditLogService;
 
   public EventService(
       EventRepository eventRepository,
       OrganiserRepository organiserRepository,
+      SeatRepository seatRepository,
       AuditLogService auditLogService) {
     this.eventRepository = eventRepository;
     this.organiserRepository = organiserRepository;
+    this.seatRepository = seatRepository;
     this.auditLogService = auditLogService;
   }
 
@@ -61,7 +67,10 @@ public class EventService {
     return toResponse(event);
   }
 
-  /** AC-035, AC-039, AC-040, AC-036: edits details, pricing/free flag and status. */
+  /**
+   * AC-035, AC-039, AC-040, AC-036: edits details, pricing/free flag and status (US-016-1:
+   * publish/unpublish, AC-041, AC-042). Events owned by another organiser are 404, never leaked.
+   */
   public EventResponse updateEvent(
       String organiserId, String eventId, UpdateEventRequest request, String ipAddress) {
     Event event =
@@ -70,6 +79,14 @@ public class EventService {
             .filter(e -> e.getOrganiser().getId().equals(organiserId))
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+
+    boolean statusOnly =
+        request.title() == null && request.startDatetime() == null && request.venue() == null;
+    if (statusOnly) {
+      applyStatusChange(event, request.status(), organiserId, ipAddress);
+      eventRepository.save(event);
+      return toResponse(event);
+    }
 
     validateRequired(request.title(), request.startDatetime(), request.venue());
     boolean free = Boolean.TRUE.equals(request.isFree());
@@ -87,28 +104,79 @@ public class EventService {
       event.setPriceMinor(request.priceMinor());
       event.setCurrency(request.currency());
     }
-    if (request.status() != null && !request.status().isBlank()) {
-      event.setStatus(request.status());
-    }
+    applyStatusChange(event, request.status(), organiserId, ipAddress);
     eventRepository.save(event);
 
     auditLogService.record("event_updated", "event", event.getId(), organiserId, ipAddress);
     return toResponse(event);
   }
 
-  /** AC-001, AC-004, AC-005: published events only. */
-  public List<EventResponse> listPublishedEvents() {
-    return eventRepository.findByStatus(PUBLISHED).stream().map(this::toResponse).toList();
+  /**
+   * AC-041: publishing a draft event requires a seating layout; AC-042: unpublishing a published
+   * event returns it to draft. Each transition writes its own AuditLog row (NFR-005: retained for
+   * at least 180 days by AuditLogService's purge policy). A no-op (status unchanged, or absent)
+   * writes nothing.
+   */
+  private void applyStatusChange(
+      Event event, String requestedStatus, String organiserId, String ipAddress) {
+    if (requestedStatus == null || requestedStatus.isBlank()) {
+      return;
+    }
+    if (!PUBLISHED.equals(requestedStatus) && !DRAFT.equals(requestedStatus)) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Status must be 'draft' or 'published'");
+    }
+    if (requestedStatus.equals(event.getStatus())) {
+      return;
+    }
+    if (PUBLISHED.equals(requestedStatus)) {
+      List<Seat> seats = seatRepository.findByEventIdOrderByRowLabelAscSeatNumberAsc(event.getId());
+      if (seats.isEmpty()) {
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "This event cannot be published because it has no seating layout; define the seating"
+                + " layout before publishing");
+      }
+      event.setStatus(PUBLISHED);
+      auditLogService.record("event_published", "event", event.getId(), organiserId, ipAddress);
+    } else {
+      event.setStatus(DRAFT);
+      auditLogService.record("event_unpublished", "event", event.getId(), organiserId, ipAddress);
+    }
   }
 
-  /** AC-006, AC-008, AC-034: 404 unless the event is published. */
+  /**
+   * AC-001, AC-004, AC-005: published events only, optionally filtered by a case-insensitive,
+   * partial-match keyword over title or venue. A blank or absent {@code q} behaves as no filter; no
+   * match yields an empty list, never an error.
+   */
+  public List<EventResponse> listPublishedEvents(String q) {
+    String term = q == null ? "" : q.strip().toLowerCase();
+    return eventRepository.findByStatus(PUBLISHED).stream()
+        .filter(e ->
+            term.isEmpty()
+                || e.getTitle().toLowerCase().contains(term)
+                || e.getVenue().toLowerCase().contains(term))
+        .map(this::toResponse)
+        .toList();
+  }
+
+  /**
+   * AC-006, AC-007, AC-008, AC-034: 404 with a plain-language message unless the event is
+   * published; the detail also carries the count of still-available seats.
+   */
   public EventResponse getPublishedEvent(String id) {
     Event event =
         eventRepository
             .findByIdAndStatus(id, PUBLISHED)
-            .orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
-    return toResponse(event);
+            .orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "This event is not available"));
+    int seatsAvailable =
+        (int)
+            seatRepository.findByEventIdOrderByRowLabelAscSeatNumberAsc(id).stream()
+                .filter(seat -> AVAILABLE.equals(seat.getStatus()))
+                .count();
+    return toResponse(event, seatsAvailable);
   }
 
   private void validateRequired(String title, LocalDateTime startDatetime, String venue) {
@@ -133,6 +201,10 @@ public class EventService {
   }
 
   private EventResponse toResponse(Event event) {
+    return toResponse(event, null);
+  }
+
+  private EventResponse toResponse(Event event, Integer seatsAvailable) {
     return new EventResponse(
         event.getId(),
         event.getTitle(),
@@ -142,6 +214,7 @@ public class EventService {
         event.getIsFree(),
         event.getPriceMinor(),
         event.getCurrency(),
-        event.getStatus());
+        event.getStatus(),
+        seatsAvailable);
   }
 }

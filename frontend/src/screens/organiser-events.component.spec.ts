@@ -205,6 +205,77 @@ describe("Organiser events screen", () => {
     expect(comp.events().find((e) => e.id === "evt_a").is_free).toBe(true);
   });
 
+  it("[AC-044] publish calls PUT /api/organiser/events/{id} with status published and the badge updates", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+    comp.selectEvent("evt_a");
+    fixture.detectChanges();
+
+    (global.fetch as unknown as Mock).mockResolvedValueOnce(
+      jsonResponse(true, 200, { ...EVENT_A, status: "published" }),
+    );
+
+    await comp.publish();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const call = (global.fetch as unknown as Mock).mock.calls.find(
+      (c) => c[1]?.method === "PUT" && String(c[0]).includes("/api/organiser/events/evt_a"),
+    );
+    expect(call).toBeTruthy();
+    expect(JSON.parse(call[1].body)).toMatchObject({ status: "published" });
+    expect(comp.events().find((e) => e.id === "evt_a").status).toBe("published");
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain("Published");
+  });
+
+  it("[AC-044] unpublish calls PUT /api/organiser/events/{id} with status draft and the badge updates", async () => {
+    const fixture = await setup([{ ...EVENT_A, status: "published" }]);
+    const comp = fixture.componentInstance;
+    comp.selectEvent("evt_a");
+    fixture.detectChanges();
+
+    (global.fetch as unknown as Mock).mockResolvedValueOnce(
+      jsonResponse(true, 200, { ...EVENT_A, status: "draft" }),
+    );
+
+    await comp.unpublish();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const call = (global.fetch as unknown as Mock).mock.calls.find(
+      (c) => c[1]?.method === "PUT" && String(c[0]).includes("/api/organiser/events/evt_a"),
+    );
+    expect(call).toBeTruthy();
+    expect(JSON.parse(call[1].body)).toMatchObject({ status: "draft" });
+    expect(comp.events().find((e) => e.id === "evt_a").status).toBe("draft");
+  });
+
+  it("a publish rejected for a missing seating layout shows the API's plain-language message inline and the row stays draft", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+    comp.selectEvent("evt_a");
+    fixture.detectChanges();
+
+    (global.fetch as unknown as Mock).mockResolvedValueOnce(
+      jsonResponse(false, 400, {
+        message:
+          "This event cannot be published because it has no seating layout; define the seating layout before publishing",
+      }),
+    );
+
+    await comp.publish();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(comp.publishError()).toBe(
+      "This event cannot be published because it has no seating layout; define the seating layout before publishing",
+    );
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain("has no seating layout");
+    expect(comp.events().find((e) => e.id === "evt_a").status).toBe("draft");
+  });
+
   it("a 401 on load returns the organiser to sign-in and clears the token", async () => {
     setToken("jwt-expired");
     (global.fetch as unknown as Mock) = vi

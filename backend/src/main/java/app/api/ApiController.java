@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -42,8 +43,8 @@ public class ApiController {
    * AC-005).
    */
   @GetMapping("/api/events")
-  public List<EventResponse> getApiEvents() {
-    return eventService.listPublishedEvents();
+  public List<EventResponse> getApiEvents(@RequestParam(name = "q", required = false) String q) {
+    return eventService.listPublishedEvents(q);
   }
 
   /** Public event detail incl. price or free; not-available if unpublished (AC-006, AC-008). */
