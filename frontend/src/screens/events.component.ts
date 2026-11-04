@@ -1,5 +1,5 @@
 // @ts-nocheck -- generated from the approved design under its plain-JavaScript contract; not hand-written TypeScript.
-/* eslint-disable @typescript-eslint/no-unused-vars */
+ 
 import { Component, signal, computed } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
@@ -54,7 +54,7 @@ const EVENTS = [
     venue: "Narain Niwas, Jaipur",
     when: "Sat 13 Dec · 9:00 PM",
     price: "₹2,200",
-    isFree: true === false ? "" : "₹2,200" ? false : false,
+    isFree: false,
     status: "published",
   },
   {
@@ -190,11 +190,8 @@ export default class Screen extends ScreenBase {
     const f = this.filter();
     return this.published.filter((e) => {
       const matches =
-        q === "" ||
-        e.title.toLowerCase().includes(q) ||
-        e.venue.toLowerCase().includes(q);
-      const priced =
-        f === "all" || (f === "free" && e.isFree) || (f === "paid" && !e.isFree);
+        q === "" || e.title.toLowerCase().includes(q) || e.venue.toLowerCase().includes(q);
+      const priced = f === "all" || (f === "free" && e.isFree) || (f === "paid" && !e.isFree);
       return matches && priced;
     });
   });
