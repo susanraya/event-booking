@@ -23,54 +23,16 @@ import { organiserAuthGuard } from "@/lib/organiser-auth.guard";
           Event booking
         </p>
         <nav aria-label="App menu" class="flex flex-col gap-1">
-          <a
-            routerLink="/events"
-            routerLinkActive
-            #link0="routerLinkActive"
-            [class]="linkClass(link0.isActive)"
-          >
-            Events
-          </a>
-          <a
-            routerLink="/event-detail"
-            routerLinkActive
-            #link1="routerLinkActive"
-            [class]="linkClass(link1.isActive)"
-          >
-            Event &amp; Booking
-          </a>
-          <a
-            routerLink="/my-booking"
-            routerLinkActive
-            #link2="routerLinkActive"
-            [class]="linkClass(link2.isActive)"
-          >
-            My Booking
-          </a>
-          <a
-            routerLink="/organiser-sign-in"
-            routerLinkActive
-            #link3="routerLinkActive"
-            [class]="linkClass(link3.isActive)"
-          >
-            Organiser Sign In
-          </a>
-          <a
-            routerLink="/organiser-events"
-            routerLinkActive
-            #link4="routerLinkActive"
-            [class]="linkClass(link4.isActive)"
-          >
-            Organiser Events
-          </a>
-          <a
-            routerLink="/check-in"
-            routerLinkActive
-            #link5="routerLinkActive"
-            [class]="linkClass(link5.isActive)"
-          >
-            Door Check-In
-          </a>
+          @for (item of navItems; track item.path) {
+            <a
+              [routerLink]="item.path"
+              routerLinkActive
+              #rla="routerLinkActive"
+              [class]="linkClass(rla.isActive)"
+            >
+              {{ item.label }}
+            </a>
+          }
         </nav>
       </aside>
       <main class="flex-1 overflow-auto">
@@ -80,6 +42,15 @@ import { organiserAuthGuard } from "@/lib/organiser-auth.guard";
   `,
 })
 export class AppShellComponent {
+  protected readonly navItems = [
+    { path: "/events", label: "Events" },
+    { path: "/event-detail", label: "Event & Booking" },
+    { path: "/my-booking", label: "My Booking" },
+    { path: "/organiser-sign-in", label: "Organiser Sign In" },
+    { path: "/organiser-events", label: "Organiser Events" },
+    { path: "/check-in", label: "Door Check-In" },
+  ];
+
   protected linkClass(active: boolean): string {
     return [
       "flex items-center gap-2 rounded-[var(--brand-radius)] px-3 py-2 text-sm font-medium transition-colors",
