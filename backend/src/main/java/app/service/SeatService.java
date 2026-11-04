@@ -108,10 +108,7 @@ public class SeatService {
     return seatRepository.findByEventIdOrderByRowLabelAscSeatNumberAsc(eventId).stream()
         .map(seat ->
             new SeatResponse(
-                seat.getId(),
-                seat.getRowLabel(),
-                seat.getSeatNumber(),
-                AVAILABLE.equals(seat.getStatus())))
+                seat.getId(), seat.getRowLabel(), seat.getSeatNumber(), seat.getStatus()))
         .toList();
   }
 }
