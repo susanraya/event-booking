@@ -47,7 +47,9 @@ test.describe("public browsing and search (AC-001..AC-005)", () => {
     await page.addInitScript(() => window.localStorage.clear());
     await page.goto("/events");
 
-    const row = page.locator("tr", { has: page.getByRole("button", { name: new RegExp(`Open ${title}`) }) });
+    const row = page.locator("tr", {
+      has: page.getByRole("button", { name: new RegExp(`Open ${title}`) }),
+    });
     await expect(row).toBeVisible();
     await expect(row.getByText(venue)).toBeVisible();
     // Date/time is rendered as "<weekday day month> · <time>"; just assert it's non-empty text
@@ -67,7 +69,9 @@ test.describe("public browsing and search (AC-001..AC-005)", () => {
     await expect(page.getByText(title)).toHaveCount(0);
   });
 
-  test("[AC-004] searching a matching term filters the list to matching events", async ({ page }) => {
+  test("[AC-004] searching a matching term filters the list to matching events", async ({
+    page,
+  }) => {
     const title = uniqueTitle("Qawwali Night Searchable");
     const venue = "Siri Fort Auditorium, Delhi";
 
@@ -136,7 +140,9 @@ test.describe("public event detail (AC-006, AC-007, AC-008)", () => {
     await expect(seatButton).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("[AC-006] a free published event shows 'Free entry' instead of a price", async ({ page }) => {
+  test("[AC-006] a free published event shows 'Free entry' instead of a price", async ({
+    page,
+  }) => {
     const title = uniqueTitle("Free Community Concert");
 
     await signIn(page);

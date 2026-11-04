@@ -73,7 +73,9 @@ describe("Events listing — live API", () => {
   });
 
   it("[AC-002] no client-side sample array remains; only API-returned events render", async () => {
-    (global.fetch as unknown as Mock) = vi.fn().mockResolvedValue(jsonResponse([PUBLISHED_EVENTS[0]]));
+    (global.fetch as unknown as Mock) = vi
+      .fn()
+      .mockResolvedValue(jsonResponse([PUBLISHED_EVENTS[0]]));
 
     const fixture = await setup();
     const text: string = fixture.nativeElement.textContent;
@@ -171,9 +173,7 @@ describe("Events listing — live API", () => {
     const router = TestBed.inject(Router);
     const navigateSpy = vi.spyOn(router, "navigateByUrl");
 
-    const button = fixture.debugElement.query(
-      By.css("button[aria-label^='Open Khayal at Dusk']"),
-    );
+    const button = fixture.debugElement.query(By.css("button[aria-label^='Open Khayal at Dusk']"));
     button.nativeElement.click();
     await fixture.whenStable();
 
