@@ -5,7 +5,7 @@
 <!-- sdlc:auto:start overview -->
 event booking app: events, seats, bookings, confirmation email
 
-**Documentation version:** v5
+**Documentation version:** v1
 <!-- sdlc:auto:end overview -->
 
 ## Contents
@@ -14,24 +14,24 @@ event booking app: events, seats, bookings, confirmation email
 | Document | State |
 |---|---|
 | [Requirements](requirements/README.md) | v1 approved |
-| [Architecture](architecture/README.md) | 9 entries |
-| [Development](development/README.md) | 33 entries |
+| [Architecture](architecture/README.md) | 14 entries |
+| [Development](development/README.md) | 11 entries |
 | [Testing](testing/README.md) | 1 entry |
-| [Deployment](deployment/README.md) | 3 entries |
+| [Deployment](deployment/README.md) | 1 entry |
 | [Maintenance](maintenance/README.md) | 1 entry |
 | [Data model](architecture/data-model.md) | generated |
 | [API (OpenAPI)](architecture/api/openapi.yaml) | generated |
 | [Decisions (ADRs)](architecture/adr/README.md) | 4 decisions |
 | [Sprint plan](development/sprint-plan.md) | 5 sprints |
 | [Developer guide](development/developer-guide.md) | generated |
-| [API reference](development/api-reference.md) | 1 route |
+| [API reference](development/api-reference.md) | 12 routes |
 | [Test report](testing/test-report.md) | not run yet |
-| [Tests](testing/test-cases.md) | 0 tests |
-| [Deployment guide](deployment/deployment-guide.md) | deployed |
-| [Runbook](deployment/runbook.md) | deployed |
-| [Release notes](deployment/release-notes.md) | 2 releases |
+| [Tests](testing/test-cases.md) | 41 tests |
+| [Deployment guide](deployment/deployment-guide.md) | not deployed yet |
+| [Runbook](deployment/runbook.md) | not deployed yet |
+| [Release notes](deployment/release-notes.md) | 0 releases |
 | [Traceability matrix](traceability-matrix.md) | 21 requirements |
-| [Changelog](CHANGELOG.md) | 5 versions |
+| [Changelog](CHANGELOG.md) | 1 version |
 <!-- sdlc:auto:end contents -->
 
 ## Open gaps
@@ -39,61 +39,38 @@ event booking app: events, seats, bookings, confirmation email
 <!-- sdlc:auto:start open-gaps -->
 ### Requirements
 
-- Discrepancy: the AWS rationale text states payments go through Razorpay to meet RBI card-data-residency rules, but the scope section explicitly removes payments and Razorpay from this build. Confirm whether RBI payment-data localisation is now moot (no in-app payment processing) or whether this rationale is stale.
-- No rationale given for choice of Spring Boot 4.1 or Angular 22 versions specifically.
-- See REQ-TECH-001 for the conflict between the payments-out-of-scope decision and the Razorpay/RBI rationale text attached to the AWS stack choice.
-- Age confirmation (AC-018) is a self-declared checkbox per the text given; no mechanism for actual age verification is specified -- flagged for DPDP 'verifiable parental consent for under-18s' topic (see top-level gaps).
-- The 'event's cancellation policy' that gates whether cancellation is permitted is referenced but its configuration/definition is not described anywhere in the input.
-- No requirement describes a Data Protection Board / affected-individual breach-notification process, or CERT-In's 6-hour cyber-incident reporting -- only the 180-day log-retention NFR is specified.
-- No requirement mentions a registered DPDP consent manager, despite the regulation naming consent managers as an accepted consent-capture route.
-- The 18+ gate (US-007/EPIC-002) is self-declared, not verified -- confirm this is an accepted substitute for 'verifiable parental consent for under-18s' rather than an open compliance risk.
-- No requirement specifies the separate CERT-In obligation to report cyber incidents within 6 hours -- only log retention is covered.
+- No verification mechanism for the declared age is described -- the 18+ check appears to be a self-asserted confirmation, not a verified control.
+- Significant Data Fiduciary duties (India-based DPO, audits, DPIA) are not addressed; unclear whether this project would be classified as a Significant Data Fiduciary.
+- DPDP breach-notification duties (Data Protection Board + affected-person notice) are not addressed by this epic or any other requirement.
+- CERT-In also requires reporting cyber incidents within 6 hours; only the 180-day log-retention half of the CERT-In direction is covered here.
+- Discrepancy: the Cloud/AWS rationale text states 'your payments go through Razorpay to meet RBI's rule that card data stays in the country', but Payments/Razorpay is explicitly listed as out of scope and is absent from the architecture -- this RBI payment-data rationale no longer applies and should be reconciled or removed from the stack rationale.
+- Accessibility (RPwD Act 2016 / GIGW-WCAG), Consumer Protection Act 2019 / E-Commerce Rules 2020, and IT Act 2000 / Intermediary Rules 2021 obligations are not mentioned anywhere in the scope or capabilities.
 
 ### Architecture
 
-- Full NFR/AC catalogue is not included in this input -- only the IDs cited inline (e.g. NFR-001, NFR-003/004/005/008/009/010, AC-001 to AC-052) are known; their full text is not available to this documentation phase.
-- No explicit statement of how 'paid-but-settled-offline' payment status is tracked or reconciled beyond being mentioned once -- payment settlement workflow is unclear.
-- The mechanism that actually expires abandoned locks (scheduled job, lazy check-on-read, DB TTL, etc.) is not specified.
-- No explicit field or mechanism on audit_log (or elsewhere) documents how/when the 180-day retention is enforced (e.g. scheduled purge job) -- the retention policy is stated at the summary level only.
-- Rationale given for each stack choice is high-level (feature fit, compliance fit) -- no cost, performance-benchmark, or team-skill comparison against the named alternatives is included in this input.
+- No deployment phase input exists yet confirming these nodes have actually been provisioned -- architecture specifies them as design intent only.
 
 ### Development
 
-- No execution/completion status (code, PRs, test results) reported for any backlog item -- this entry documents the plan only.
-- No approval metadata (approver, date) was provided for the plan.
-- Item-to-sprint assignment is inferred from the goal description text; the plan input did not explicitly list item IDs per sprint.
-- No status reported on whether Sprint 1 work was started, completed, or carried over.
-- Item-to-sprint assignment inferred from goal text, not explicit in input.
-- No completion/progress status reported.
-- US-021 (India hosting) is the only DPDP-epic item not in this sprint -- it was matched to Sprint 2 instead; confirm this split is correct.
-- Epic has no assigned role/owner.
-- No implementation status reported.
-- Epic name references DPDP (India's data protection law); no explicit compliance/regulation checklist was supplied in this input to confirm full coverage -- recommend a dedicated compliance review beyond US-020/US-021.
-- No implementation status, code, or test evidence reported.
-- No implementation status, code, or test evidence reported for the story or any of its 4 tasks.
-- No implementation status, code, or test evidence reported for the story or any of its 3 tasks.
-- No explicit DPDP regulation checklist supplied in this input to confirm this story's scope fully satisfies consent-withdrawal obligations.
-- No implementation status, code, or infrastructure evidence reported.
-- No explicit DPDP data-residency checklist supplied in this input to confirm full regulatory coverage.
+- Backlog items in the plan input are not explicitly tagged to a sprint; any sprint-to-story mapping elsewhere in this documentation is inferred from the goal text, not an explicit field.
+- No delivery ticket recorded for US-001, US-002 or US-003 despite the development run being marked 'completed'.
+- No delivery tickets recorded for any of US-004 through US-009 despite the development run being marked 'completed'.
+- No delivery tickets recorded for US-010 or US-011 despite the development run being marked 'completed'.
+- US-016, US-017 and US-018 have no recorded delivery ticket despite the development run being marked 'completed', even though sibling stories in the same epic (US-012-015) were delivered.
+- No delivery ticket recorded for US-019 despite the development run being marked 'completed'.
+- No delivery ticket recorded for US-020 or US-021 despite the development run being marked 'completed' -- India hosting in particular is foundational and its unconfirmed delivery is a notable risk.
 
 ### Testing
 
-- Testing phase has not started -- no test plans, cases, or results available.
-- Critical NFR-001 ('seat can never be sold twice') and the DPDP consent/deletion flows (US-007, US-020) have no recorded verification yet.
+- No ticket or story is associated with this run, so it cannot be traced to any specific acceptance criteria.
+- No test plan, test type (unit/integration/E2E/security), or environment is documented.
+- The 50 acceptance criteria across the 21 stories (and the 10 NFRs) have no individually recorded test evidence in the input.
 
 ### Deployment
 
-- No deployment date/timestamp provided for this release.
-- No record of who approved or triggered the deployment.
-- No mapping provided from version 3ccd7131dd04 to specific requirement IDs (US-001 through US-021), so it is unknown which features are confirmed live in this version.
-- No release notes or changelog describing what changed in this deployment.
-- No rollback plan or previous-version reference provided.
-- No post-deployment verification, health-check, or monitoring results provided.
-- URL uses an 'amplifyapp.local' pattern suggesting a possibly non-production/sandbox domain; not confirmed whether this is the permanent production address.
-- URL uses an 'awsapprunner.local' pattern suggesting a possibly non-production/sandbox domain; not confirmed whether this is the permanent production address.
-- No confirmation of which backend capabilities (events, seats, bookings, confirmation email) are live and reachable at this endpoint.
+- No deployment has occurred or been recorded; cannot confirm the AWS Mumbai infrastructure described in architecture (CloudFront/S3, ECS Fargate, RDS, SES, CloudWatch) has actually been provisioned.
 
 ### Maintenance
 
-- No maintenance activity recorded yet -- project has not reached post-deployment.
+- No maintenance phase has started; there is no incident-response, monitoring, or support process documented, including none for the CERT-In 6-hour cyber-incident reporting duty.
 <!-- sdlc:auto:end open-gaps -->

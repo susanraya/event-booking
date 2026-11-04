@@ -5,184 +5,148 @@
 <!-- sdlc:auto:start narrative -->
 ## Summary
 
-### REQ-TECH-001 · approved · source: requirements:tech-stack
+### REQ-EPIC-001 · approved · source: requirements:EPIC-001
 
-Product owner approved an exact technology stack: Spring Boot 4.1 (backend), AWS India/Mumbai region (cloud), PostgreSQL 16 (database), Angular 22 (frontend). Email is sent via SMTP (SaaS, e.g. Amazon SES over SMTP) using env vars SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD.
+Public attendees can browse and search the organisation's published events and open a detailed event page, with no account required.
 
-Decided stack and rationale as given:
-- Backend: Spring Boot 4.1 -- no rationale text given beyond approval.
-- Cloud: AWS (Mumbai/India region) -- chosen so app, database and transactional email stay inside India to satisfy the DPDP consent notice and keep CERT-In's 180-day activity logs in-country; rationale text also states 'payments go through Razorpay to meet RBI's rule that card data stays in the country.'
-- Database: PostgreSQL 16 -- chosen for transactional guarantees so a seat/booking/payment-status combination can never be double-claimed even under concurrent requests; also supports DPDP deletion requests by keeping personal data centrally located; judged sufficient for the project's small scale.
-- Frontend: Angular 22 -- no rationale text given beyond approval.
-- Email service: SMTP server (SaaS) with env vars SMTP_HOST/PORT/USER/PASSWORD, used to send booking/cancellation confirmations containing booking reference and QR ticket; rationale ties Amazon SES over SMTP from Mumbai to keeping email content inside India per the privacy notice.
-- API keys required: SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER.
+US-001 (high): browse published events listing with title/date/venue; unpublished events never appear (AC-001..003). US-002 (medium): keyword search over title/venue, with a clear 'no events found' message when nothing matches (AC-004, AC-005). US-003 (high): event detail page shows title, description, date/time, venue and price/free status, and allows proceeding to seat selection when seats are available; non-published events show a not-available message (AC-006..008).
 
-**Related:** EPIC-001, EPIC-002, EPIC-003, EPIC-004, EPIC-005, EPIC-006, NFR-001, NFR-004, NFR-005
+**Related:** US-001, US-002, US-003
 
-- ⚠ Discrepancy: the AWS rationale text states payments go through Razorpay to meet RBI card-data-residency rules, but the scope section explicitly removes payments and Razorpay from this build. Confirm whether RBI payment-data localisation is now moot (no in-app payment processing) or whether this rationale is stale.
-- ⚠ No rationale given for choice of Spring Boot 4.1 or Angular 22 versions specifically.
+### REQ-EPIC-002 · approved · source: requirements:EPIC-002
 
-### REQ-SCOPE-001 · draft · source: requirements:scope
+Attendees select exact seats, hold them during checkout, supply guest contact details and DPDP consent, and complete a free or offline-settled paid booking with a reference, QR ticket and confirmation email.
 
-Lightweight-scope requirements version 1 defines in-scope capabilities (browsing/search, seat selection with locking, guest booking, QR ticketing, lookup/cancellation, organiser management, publish/unpublish, consent notice) and explicitly excludes native mobile apps and payments.
+US-004 (critical): seat map shows available/booked seats; selections highlighted by row/seat (AC-009..011). US-005 (critical): seats locked during checkout via hold token; concurrent claims resolved first-come; abandoned holds expire and release seats (AC-012..014). US-006 (high): guest name/email/phone entry with validation (AC-015, AC-016). US-007 (high): explicit DPDP consent notice and 18+ confirmation required to proceed (AC-017..019). US-008 (critical): booking confirmed with unique reference; free events charge nothing, paid events record against displayed price with no in-app payment (AC-020..022). US-009 (high): confirmation email with reference, seats and QR ticket; on-screen QR ticket; email-only notifications (AC-023..025). Assumption stated in input: online payment (previously Razorpay) is out of scope for this version.
 
-In scope: public event browsing and search; event detail page; exact seat selection on seating layout; seat locking to prevent double-booking; guest booking with contact details (no mandatory account); booking reference generation; on-screen scannable QR ticket; booking lookup by reference and email; organiser sign-in; event creation/editing; seating layout definition; seat pricing and free-event configuration; publish/unpublish events; organiser dashboard; consent notice at booking.
-Out of scope -- explicitly not to be designed or built: native mobile apps (iOS/Android) for attendees or door staff (replaced by responsive web app and browser-based QR check-in page); payments (Razorpay was proposed then removed from the stack).
+**Related:** US-004, US-005, US-006, US-007, US-008, US-009
 
-**Related:** EPIC-001, EPIC-002, EPIC-003, EPIC-004, EPIC-005, EPIC-006
+### REQ-EPIC-003 · approved · source: requirements:EPIC-003
 
-- ⚠ See REQ-TECH-001 for the conflict between the payments-out-of-scope decision and the Razorpay/RBI rationale text attached to the AWS stack choice.
+Attendees can retrieve a booking with reference plus email and request cancellation subject to the event's policy; refunds are handled outside the app.
 
-### EPIC-001 · draft · source: requirements:EPIC-001
+US-010 (high): lookup by reference + email returns booking/seats/QR ticket; mismatches show a not-found message revealing nothing (AC-026, AC-027). US-011 (medium): cancellation where policy permits marks the booking cancelled, releases seats, and sends a cancellation email; monetary refunds for paid bookings are handled outside the app per event policy (AC-028..030).
 
-Public attendees can browse and search only published events and open a full event detail page, with no account required. Unpublished events are never visible.
+**Related:** US-010, US-011
 
-US-001 Browse published events: listing shows title, date/time, venue for each published event; unpublished/unpublished-again events are excluded; no sign-in needed (AC-001..AC-003).
-US-002 Search events: keyword search matches title or venue among published events; no-match shows a clear 'no events found' message rather than an error (AC-004, AC-005).
-US-003 View event detail page: shows title, description, date/time, venue, and price or 'free'; proceeding to seat selection is available when seats exist; requesting an unpublished event's detail page shows a not-available message and blocks booking (AC-006..AC-008).
+### REQ-EPIC-004 · approved · source: requirements:EPIC-004
 
-**Related:** US-001, US-002, US-003, AC-001, AC-002, AC-003, AC-004, AC-005, AC-006, AC-007, AC-008
+Organisers sign in to create/edit events, define seating layouts, set pricing or mark events free, publish/unpublish, and manage events and bookings from a dashboard.
 
-### EPIC-002 · draft · source: requirements:EPIC-002
+US-012 (critical): email/password sign-in; generic error on failure; unauthenticated users redirected (AC-031..033). US-013 (high): create/edit events saved as drafts with required-field validation (AC-034..036). US-014 (high): define rows/seats layout, uniquely identifiable even at hundreds of seats (AC-037, AC-038). US-015 (high): set price or mark free, reflected in detail/booking flow (AC-039, AC-040). US-016 (high): publish/unpublish controls public visibility and bookability (AC-041, AC-042). US-017 (medium): dashboard lists events with status and date/time, drill into management (AC-043, AC-044). US-018 (medium): view/search bookings by name, email or reference (AC-045, AC-046).
 
-Attendees pick exact seats on a layout, have them locked during checkout, enter guest contact details, consent and confirm adult age, then complete a booking (free or priced with no in-app payment) and get a reference plus an emailed/on-screen QR ticket.
+**Related:** US-012, US-013, US-014, US-015, US-016, US-017, US-018
 
-US-004 Select exact seats: layout shows available vs. booked seats; selected seats highlighted and identified by row/seat number; seats already booked or locked by others are unselectable (AC-009..AC-011).
-US-005 Lock seats to prevent double-booking: seats lock on starting checkout and show unavailable to others; concurrent attempts on the same seat let only the first succeed, second is told it's unavailable; abandoned holds expire and release the seat (AC-012..AC-014). Ties to NFR-001 (a seat can never be sold twice).
-US-006 Guest contact details: name/email/phone entered without account creation; empty required field or invalid email blocks submission with a validation message (AC-015, AC-016).
-US-007 Consent and adult eligibility (DPDP Act: notice and consent for name/email/phone; children's-data avoidance via 18+ gate): booking form shows a data-use notice and requires explicit consent plus confirmation of being 18+; missing either blocks the booking (AC-017..AC-019).
-US-008 Complete booking and generate reference: free events confirm without charge; paid events record against displayed price with no in-app payment; a unique booking reference is generated and shown on screen; seats marked booked (AC-020..AC-022).
-US-009 Confirmation email with QR ticket: confirmation email via the transactional email provider contains reference, seat details and a scannable QR; the same QR is shown on-screen; notifications are email-only, no SMS (AC-023..AC-025).
+### REQ-EPIC-005 · approved · source: requirements:EPIC-005
 
-**Related:** US-004, US-005, US-006, US-007, US-008, US-009, NFR-001, NFR-006
+Door staff use a browser-based scan page (no native app) to validate and check in attendee QR tickets, preventing duplicate or invalid check-ins.
 
-- ⚠ Age confirmation (AC-018) is a self-declared checkbox per the text given; no mechanism for actual age verification is specified -- flagged for DPDP 'verifiable parental consent for under-18s' topic (see top-level gaps).
-
-### EPIC-003 · draft · source: requirements:EPIC-003
-
-Attendees can retrieve a booking by reference plus email to view seats and QR ticket, and cancel it where the event policy allows, releasing seats; any refund is handled outside the app.
-
-US-010 Look up a booking: matching reference+email reveals booking details, seats and QR; non-matching input shows a clear not-found message without revealing any booking data (AC-026, AC-027). Ties to NFR-008 (booking details gated by reference+email match).
-US-011 Request cancellation: where the event's policy permits, cancelling marks the booking cancelled and releases seats; a cancellation email confirms it; for paid bookings, any monetary refund is handled outside the app per event policy, since online payment is out of scope (AC-028..AC-030).
-
-**Related:** US-010, US-011, NFR-008
-
-- ⚠ The 'event's cancellation policy' that gates whether cancellation is permitted is referenced but its configuration/definition is not described anywhere in the input.
-
-### EPIC-004 · draft · source: requirements:EPIC-004
-
-An organiser signs in to create/edit events, define seating layouts, set pricing or mark events free, publish/unpublish, and manage events and bookings from a dashboard. Only authenticated organisers can reach these functions.
-
-US-012 Organiser sign-in: correct email/password grants dashboard access; incorrect credentials are denied with a generic error (no field disclosed); unauthenticated access to any organiser page redirects to sign-in (AC-031..AC-033). Ties to NFR-009.
-US-013 Create and edit events: new events (title, description, date/time, venue) save as an unpublished draft; edits update the live detail page; missing required fields (e.g. title, date/time) block saving with a validation message (AC-034..AC-036).
-US-014 Define seating layout: organiser defines rows/seats used for attendee selection; even at hundreds of seats, each seat is uniquely identifiable by row and seat number (AC-037, AC-038). Ties to NFR-002 (sized for a handful of events, hundreds of seats each, not high-concurrency sell-outs).
-US-015 Pricing or free: a set price displays on detail page and booking flow; marking an event free allows booking with no charge and a 'free' label (AC-039, AC-040).
-US-016 Publish/unpublish: publishing a draft event with a defined layout makes it publicly visible and bookable; unpublishing removes it from browsing/search and blocks booking (AC-041, AC-042).
-US-017 Organiser dashboard: lists the organiser's events with status (draft/published) and date/time; selecting an event opens it for editing, layout/pricing management, or publish/unpublish (AC-043, AC-044).
-US-018 View and search bookings: per-event view shows each booking's reference, attendee contact details and seats; search by attendee name, email, or reference filters the list (AC-045, AC-046).
-
-**Related:** US-012, US-013, US-014, US-015, US-016, US-017, US-018, NFR-002, NFR-009
-
-### EPIC-005 · draft · source: requirements:EPIC-005
-
-Door staff use a browser-based QR scan page (no native app) to validate and check in attendees for a specific event, preventing duplicate or invalid check-ins.
-
-US-019 Scan QR ticket to check in: a valid ticket for the event being checked shows as valid and marks the attendee checked in; a ticket already checked in triggers a warning and is not re-admitted; the page must work in a standard web browser (no native app) (AC-047..AC-049). An invalid, cancelled, or wrong-event QR shows an invalid-ticket message and does not check the attendee in (AC-050). Ties to NFR-003 (responsive web/browser-only, no native apps).
-
-**Related:** US-019, NFR-003
-
-### EPIC-006 · draft · source: requirements:EPIC-006
-
-DPDP Act 2023: data handled in an India region with consent captured at booking, easy consent withdrawal/deletion through the same booking-management flow, and bookings restricted to adults to avoid children's-data duties.
-
-US-020 Withdraw consent and request deletion -- DPDP Act: data-principal rights (withdrawal, erasure): through the same flow used to retrieve a booking, an attendee can withdraw consent or request deletion; the request is actioned and personal data deleted or anonymised; withdrawal must be as easy as giving consent (AC-051, AC-052). Ties to NFR-007.
-US-021 Host application and data in an India region -- DPDP Act: data-residency expectation: application hosting and personal-data storage (including transactional email) are located in an India (Mumbai) region; deletion requests remove data from that India-hosted store (AC-053, AC-054). Ties to NFR-004 and NFR-005 (CERT-In 180-day ICT log retention, same India-hosted environment).
-
-**Related:** US-020, US-021, NFR-004, NFR-005, NFR-006, NFR-007
-
-- ⚠ No requirement describes a Data Protection Board / affected-individual breach-notification process, or CERT-In's 6-hour cyber-incident reporting -- only the 180-day log-retention NFR is specified.
-- ⚠ No requirement mentions a registered DPDP consent manager, despite the regulation naming consent managers as an accepted consent-capture route.
-- ⚠ The 18+ gate (US-007/EPIC-002) is self-declared, not verified -- confirm this is an accepted substitute for 'verifiable parental consent for under-18s' rather than an open compliance risk.
-
-### NFR-001 · draft · source: requirements:NFR-001
-
-Availability/correctness: a seat can never be sold twice; concurrent claims on the same seat must resolve so only the first succeeds.
-
-Seat holding and booking must be reliably conflict-free -- when two attendees try to claim the same seat at the same moment, only the first succeeds and the second is told the seat is no longer available.
-
-**Related:** US-004, US-005, US-008
-
-### NFR-002 · draft · source: requirements:NFR-002
-
-Scale target: a handful of events at a time, hundreds of seats per event; not designed for high-concurrency sell-out spikes.
-
-System sizing target: a handful of concurrent events, hundreds of seats per event; no requirement to absorb high-concurrency sell-out traffic.
-
-**Related:** US-014
-
-### NFR-003 · draft · source: requirements:NFR-003
-
-Compatibility: responsive web app only, no native mobile apps; browser-based QR check-in must work on a standard device.
-
-Product is delivered as a responsive web application with no native mobile apps; the door-staff QR check-in page must work in a web browser on a standard device.
+US-019 (high): valid ticket for the event marks the booking checked in; already-used tickets are warned and not re-checked-in; scan page works in a standard browser; invalid/cancelled/wrong-event tickets show an invalid-ticket message (AC-047..050).
 
 **Related:** US-019
 
-### NFR-004 · draft · source: requirements:NFR-004
+### REQ-EPIC-006 · approved · source: requirements:EPIC-006
 
-DPDP Act: data-residency control -- application and all personal data, including transactional email, hosted in an India (AWS Mumbai) region; deletions remove data from that store.
+DPDP Act compliance: India-region hosting of app and personal data, consent withdrawal and deletion as easy as consent-giving, and adults-only bookings to avoid children's-data duties.
 
-Target: AWS India (Mumbai) region for app hosting, database and transactional email, meeting DPDP data-residency expectations; deletion requests remove data from the India-hosted store.
+DPDP Act: data-principal rights (withdrawal & erasure) and data-residency. US-020 (high): withdrawal of consent / deletion request actioned through the booking-management flow, available as easily as giving consent (AC-051, AC-052). US-021 (medium): application and personal data hosted in an India region; deletion requests remove data from that India-hosted store (AC-053, AC-054). Age restriction to 18+ (see NFR-006) is the stated mechanism for avoiding verifiable-parental-consent duties for minors.
+
+**Related:** US-020, US-021
+
+- ⚠ No verification mechanism for the declared age is described -- the 18+ check appears to be a self-asserted confirmation, not a verified control.
+- ⚠ Significant Data Fiduciary duties (India-based DPO, audits, DPIA) are not addressed; unclear whether this project would be classified as a Significant Data Fiduciary.
+- ⚠ DPDP breach-notification duties (Data Protection Board + affected-person notice) are not addressed by this epic or any other requirement.
+
+### REQ-NFR-001 · approved · source: requirements:NFR-001
+
+Seat holding/booking must be reliably conflict-free: only the first of two simultaneous claims on the same seat succeeds.
+
+Availability NFR: a seat can never be sold twice. No numeric target given beyond 'reliably conflict-free'.
+
+**Related:** US-004, US-005, US-008
+
+### REQ-NFR-002 · approved · source: requirements:NFR-002
+
+System is sized for a small scale: a handful of concurrent events with hundreds of seats each, not high-concurrency sell-out spikes.
+
+Scalability NFR. Target: a handful of events at a time; hundreds of seats per event.
+
+**Related:** US-014
+
+### REQ-NFR-003 · approved · source: requirements:NFR-003
+
+Delivered as a responsive web app only; no native mobile apps; door-staff check-in must work in a standard browser.
+
+Compatibility NFR, consistent with the explicit out-of-scope exclusion of native iOS/Android apps.
+
+**Related:** US-019
+
+### REQ-NFR-004 · approved · source: requirements:NFR-004
+
+Application and all personal data, including transactional email, must be hosted in an India region; deletions remove data from that store.
+
+DPDP Act: data-residency control. Target: AWS India (Mumbai) region.
 
 **Related:** US-021
 
-### NFR-005 · draft · source: requirements:NFR-005
+### REQ-NFR-005 · approved · source: requirements:NFR-005
 
-CERT-In: activity/ICT logs must be retained for 180 days across the whole system.
+Activity logs must be retained for 180 days across the whole system.
 
-Target: 180-day retention of activity logs to meet CERT-In directions. Applies to the whole system, not tied to a specific story.
+CERT-In: ICT log retention control. Target: 180 days.
 
-- ⚠ No requirement specifies the separate CERT-In obligation to report cyber incidents within 6 hours -- only log retention is covered.
+- ⚠ CERT-In also requires reporting cyber incidents within 6 hours; only the 180-day log-retention half of the CERT-In direction is covered here.
 
-### NFR-006 · draft · source: requirements:NFR-006
+### REQ-NFR-006 · approved · source: requirements:NFR-006
 
-DPDP Act: minimal data collection and adults-only booking -- only name, email, phone collected, each with notice and explicit consent; under-18s excluded to avoid children's-data duties.
+Booking collects only name, email and phone with notice/consent, and is restricted to attendees aged 18+.
 
-Booking collects only name, email and phone, each with a clear notice and explicit consent; bookings restricted to 18+ to avoid DPDP children's-data duties.
+DPDP Act: data-minimisation and avoidance of children's-data duties.
 
 **Related:** US-006, US-007
 
-### NFR-007 · draft · source: requirements:NFR-007
+### REQ-NFR-007 · approved · source: requirements:NFR-007
 
-DPDP Act: consent withdrawal and data deletion must be as easy as giving consent, via the same booking-management flow.
+Attendees must be able to withdraw consent and request deletion as easily as they gave consent, via the booking-management flow.
 
-Attendees must be able to withdraw consent and request deletion as easily as they gave it, through the same booking-lookup flow; data is then deleted or anonymised.
+DPDP Act: data-principal rights (withdrawal & erasure).
 
 **Related:** US-020
 
-### NFR-008 · draft · source: requirements:NFR-008
+### REQ-NFR-008 · approved · source: requirements:NFR-008
 
-Security: booking details, seats and QR ticket are revealed only on a matching reference + email pair; mismatches disclose nothing.
+Booking details are disclosed only on a matching reference + email; mismatches reveal nothing.
 
-Booking details, seats and QR ticket are revealed only when a matching booking reference and the email used to book are supplied; a mismatch returns a not-found message and discloses no booking details.
+Security NFR protecting guest booking data from enumeration/disclosure.
 
 **Related:** US-010
 
-### NFR-009 · draft · source: requirements:NFR-009
+### REQ-NFR-009 · approved · source: requirements:NFR-009
 
-Security: organiser pages require authentication; failed sign-in gives a generic error.
+Only authenticated organisers can reach management/booking pages; failed sign-in gives a generic error.
 
-Only authenticated organisers can reach event-management and booking pages; unauthenticated requests are redirected to sign-in; a failed sign-in shows a generic error that does not reveal which field was wrong.
+Security NFR for organiser access control.
 
 **Related:** US-012
 
-### NFR-010 · draft · source: requirements:NFR-010
+### REQ-NFR-010 · approved · source: requirements:NFR-010
 
-Usability: empty searches, invalid/missing input, and failed lookups show clear plain-language messages instead of technical errors.
+Empty searches, invalid/missing input, and failed lookups must show clear plain-language messages, not technical errors.
 
-Empty searches, invalid or missing input, and lookups that do not match a booking must present clear, plain-language messages that guide the user rather than showing technical errors.
+Usability NFR applied to search, guest contact entry, and booking lookup.
 
 **Related:** US-002, US-006, US-010
+
+### REQ-SCOPE · approved · source: requirements:scope
+
+Lightweight delivery scope, requirements v1, with a product-owner-approved tech stack (Spring Boot 4.1, AWS Mumbai, PostgreSQL 16, Angular 22) and one approved service (SMTP email via env-configured credentials).
+
+Delivery scope: lightweight. Approved services: SMTP server (SaaS) with env vars SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD for booking/cancellation emails with QR tickets, rationale given as Amazon SES over SMTP from Mumbai. API keys needed: SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER. Out of scope: native mobile apps for attendees/door staff (replaced by responsive web app + browser QR check-in page); payments (Razorpay removed from the approved stack).
+
+**Related:** EPIC-001, EPIC-002, EPIC-003, EPIC-004, EPIC-005, EPIC-006
+
+- ⚠ Discrepancy: the Cloud/AWS rationale text states 'your payments go through Razorpay to meet RBI's rule that card data stays in the country', but Payments/Razorpay is explicitly listed as out of scope and is absent from the architecture -- this RBI payment-data rationale no longer applies and should be reconciled or removed from the stack rationale.
+- ⚠ Accessibility (RPwD Act 2016 / GIGW-WCAG), Consumer Protection Act 2019 / E-Commerce Rules 2020, and IT Act 2000 / Intermediary Rules 2021 obligations are not mentioned anywhere in the scope or capabilities.
 <!-- sdlc:auto:end narrative -->
 
 <!-- sdlc:auto:start summary -->

@@ -5,86 +5,119 @@
 <!-- sdlc:auto:start narrative -->
 ## Overview
 
-### ARCH-001 · approved · source: architecture:summary
+### ARCH-COMP-WEB · approved · source: architecture:web_app
 
-System-level architecture for a lightweight, single-organisation event booking platform: Angular 22 web app, Spring Boot 4.1 API, PostgreSQL 16 database, all hosted in AWS Mumbai (ap-south-1) for India data-residency (DPDP) reasons.
+Angular 22 responsive SPA covering public browsing/search, seat selection, guest booking with consent, booking lookup/cancellation/deletion, on-screen QR ticket, organiser dashboard, and the browser QR check-in page.
 
-Approved, version 1. Public attendees browse/search published events, pick exact seats on a layout, hold them under a time-limited, DB-enforced lock so a seat is never sold twice, give explicit DPDP consent plus adult confirmation, and complete a guest booking (free, or paid-but-settled-offline) that produces a unique reference and a scannable QR ticket emailed via Amazon SES SMTP. Attendees can look up, cancel, or request deletion of a booking using reference + email. Organisers sign in to manage events, seating layouts, pricing, publishing and bookings. Door staff check attendees in via a browser-based QR scan page. Activity logs are retained 180 days for CERT-In; personal data is minimised to name/email/phone, and booking is adults-only to avoid children's-data obligations.
+Attendee & Organiser Web App (Angular 22). Single responsive front end serving both public attendee flows and the organiser/door-staff management flows; no native mobile apps.
 
-**Related:** NFR-001, NFR-003, NFR-004, NFR-005, NFR-008, NFR-009, NFR-010
+**Related:** US-001, US-002, US-003, US-004, US-006, US-007, US-009, US-010, US-011, US-017, US-019, US-020
 
-- ⚠ Full NFR/AC catalogue is not included in this input -- only the IDs cited inline (e.g. NFR-001, NFR-003/004/005/008/009/010, AC-001 to AC-052) are known; their full text is not available to this documentation phase.
-- ⚠ No explicit statement of how 'paid-but-settled-offline' payment status is tracked or reconciled beyond being mentioned once -- payment settlement workflow is unclear.
+### ARCH-COMP-API · approved · source: architecture:backend_api
 
-### ARCH-002 · approved · source: architecture:components
+Spring Boot 4.1 REST API for events, search, seat locking/booking, reference and QR generation, organiser auth, cancellation, DPDP consent/withdrawal/deletion, check-in validation, and audit logging.
 
-Four approved components make up the system: the Angular 22 web app, the Spring Boot 4.1 backend API, the PostgreSQL 16 database, and Amazon SES SMTP for transactional email.
+Booking Backend API (Spring Boot 4.1), run on ECS Fargate in Mumbai. Centralises all transactional logic including the seat-once-only guarantee and JWT-based organiser auth.
 
-web_app (Angular 22): responsive SPA covering public browsing/search, seat selection, guest booking with consent, booking lookup/cancellation/deletion, on-screen QR ticket, organiser dashboard, and the browser-based QR check-in page. backend_api (Spring Boot 4.1): REST API for events, search, seat locking and double-booking-safe booking, reference/QR generation, organiser auth, cancellation, DPDP consent/withdrawal/deletion, check-in validation, and audit logging. database (PostgreSQL 16): single source of truth for organisers, events, seats, seat locks, bookings, consent and audit logs; enforces seat-once-only via unique constraints and row-level locking; holds all personal data in India to support deletion requests. email_smtp (Amazon SES over SMTP): sends booking confirmation and cancellation emails with reference, seat details and QR ticket, sent from the Mumbai region so email contents stay inside India.
+**Related:** US-004, US-005, US-008, US-009, US-010, US-011, US-012, US-019, US-020
 
-**Related:** US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-008, US-009, US-010, US-011, US-012, US-013, US-014, US-015, US-016, US-017, US-018, US-019, US-020, US-021
+### ARCH-COMP-DB · approved · source: architecture:database
 
-### ARCH-003 · approved · source: architecture:critical_paths:seat_lock
+PostgreSQL 16 is the single source of truth for organisers, events, seats, seat locks, bookings, consent and audit logs, enforcing seat-once-only and holding all personal data in India.
 
-Critical path: conflict-free seat selection and booking, guaranteed unique via database-level locking and a unique constraint.
+Relational Database (PostgreSQL 16) on RDS. Enforces seat-once-only via unique constraints and row-level locking (NFR-001); serves DPDP deletion requests from a single India-hosted store.
 
-Attendee selects seats; the API locks them with a hold token and expiry (POST /api/events/{id}/locks) so no one else can claim them while held; the attendee then submits contact details plus consent, and the booking is committed atomically (POST /api/bookings). PostgreSQL row locking (SELECT ... FOR UPDATE) plus a unique constraint on (seat) in booking_seat guarantees that of two concurrent claims on the same seat, only the first succeeds (NFR-001). Abandoned/expired locks return seats to available status (AC-014).
+**Related:** NFR-001, US-021
 
-**Related:** NFR-001, AC-012, AC-013, AC-014
+### ARCH-COMP-EMAIL · approved · source: architecture:email_smtp
 
-- ⚠ The mechanism that actually expires abandoned locks (scheduled job, lazy check-on-read, DB TTL, etc.) is not specified.
+Amazon SES over SMTP sends booking confirmation and cancellation emails with booking reference, seat details and QR ticket, from the Mumbai region.
 
-### ARCH-004 · approved · source: architecture:critical_paths:checkin
+Transactional Email (Amazon SES over SMTP). Keeps email contents inside India per DPDP data-residency commitment.
 
-Critical path: browser-based QR check-in at the venue, validating each ticket exactly once.
+**Related:** US-009, US-011, NFR-004
 
-Door staff open the browser check-in page for a specific event (part of web_app), scan a QR ticket, and the API (POST /api/events/{id}/checkin) validates the token against the booking, the event, and its status -- marking a valid ticket checked in exactly once. The API is expected to warn distinctly if the ticket was already used, is invalid, belongs to a cancelled booking, or belongs to the wrong event (AC-047 to AC-050).
+### ARCH-CP-SEATLOCK · approved · source: architecture:critical_path:seat_lock
 
-**Related:** AC-047, AC-048, AC-049, AC-050
+Seat lock and conflict-free booking: seats are locked with a token and expiry, and booking commits atomically so only the first of two concurrent claims succeeds.
 
-### ARCH-005 · approved · source: architecture:critical_paths:auth
+Attendee selects seats -> API locks with token+expiry -> attendee submits details+consent -> booking committed atomically. PostgreSQL row locking plus a unique constraint on (seat) in booking_seat guarantees conflict-free claims (NFR-001). Abandoned locks expire and seats return to available (AC-014).
 
-Critical path: organiser sign-in and JWT-protected access to management and booking endpoints.
+**Related:** US-004, US-005, US-008, NFR-001, AC-014
 
-Organiser signs in with email and password via POST /api/auth/login; the API verifies the password hash and issues a JWT. All management and booking-review endpoints require a valid JWT; unauthenticated requests are rejected, and a failed sign-in returns a generic error message rather than revealing whether the email or password was wrong (NFR-009, AC-031, AC-032).
+### ARCH-CP-CHECKIN · approved · source: architecture:critical_path:checkin
 
-**Related:** NFR-009, AC-031, AC-032
+Browser QR check-in at the venue: door staff scan a ticket and the API validates it against the booking, event and status, checking in a valid ticket exactly once.
 
-### ARCH-006 · approved · source: architecture:entities
+Door staff open the browser check-in page for an event, scan a QR ticket, and the API validates the token (AC-047 to AC-050).
 
-Data model: seven tables covering organisers, events, seats, seat locks, bookings, booking-seat links, and audit logs, all held in PostgreSQL 16.
+**Related:** US-019, AC-047, AC-048, AC-049, AC-050
 
-organiser(id, email, password_hash, name, created_at). event(id, organiser_id, title, description, start_datetime, venue, is_free, price_minor, currency, status, cancellation_policy, search_tsv, created_at) -- search_tsv supports full-text/ILIKE event search. seat(id, event_id, row_label, seat_number, price_minor, status). seat_lock(id, seat_id, hold_token, expires_at, created_at) -- backs the time-limited hold mechanism. booking(id, reference, event_id, guest_name, guest_email, guest_phone, status, qr_token, checked_in, checked_in_at, consent_given, consent_at, consent_notice_version, adult_confirmed, anonymised, created_at) -- carries DPDP consent, adult confirmation, and an anonymised flag for deletion requests. booking_seat(id, booking_id, seat_id) -- join table whose unique constraint on seat enforces seat-once-only. audit_log(id, action, entity_type, entity_id, actor, ip_address, created_at) -- backs the 180-day CERT-In activity log retention.
+### ARCH-CP-AUTH · approved · source: architecture:critical_path:auth
 
-**Related:** NFR-001, US-001, US-002
+Organiser sign-in and protected access: email/password verified against a hash, JWT issued, required on all management/booking endpoints.
 
-- ⚠ No explicit field or mechanism on audit_log (or elsewhere) documents how/when the 180-day retention is enforced (e.g. scheduled purge job) -- the retention policy is stated at the summary level only.
+Organiser signs in; API verifies hash and issues a JWT. Management and booking endpoints require the JWT; unauthenticated requests are rejected, and failed sign-in returns a generic error (NFR-009).
 
-### ARCH-007 · approved · source: architecture:endpoints
+**Related:** US-012, NFR-009
 
-14 REST endpoints defined, spanning public event browsing, seat locking, guest booking and self-service, organiser auth and management, and venue check-in.
+### ARCH-DATA-MODEL · approved · source: architecture:entities
 
-Public/attendee: GET /api/events (list published, keyword search over title/venue); GET /api/events/{id} (public detail, price or free, unavailable if unpublished); GET /api/events/{id}/seats (layout with per-seat availability); POST /api/events/{id}/locks (lock selected seats, return hold token + expiry, conflict if already taken); POST /api/bookings (create guest booking from hold token with contact details, consent, adult confirmation -- generates reference + QR, marks seats booked, triggers confirmation email); POST /api/bookings/lookup (retrieve by reference + email, not-found reveals nothing per NFR-008); POST /api/bookings/cancel (cancel where policy permits, release seats, send cancellation email); POST /api/bookings/withdraw-consent (withdraw consent / request deletion, deletes or anonymises personal data). Organiser: POST /api/auth/login (sign-in, generic error on failure per NFR-009); GET /api/organiser/events (dashboard listing with status and date/time); POST /api/organiser/events (create draft event); PUT /api/organiser/events/{id} (edit details, pricing/free flag, publish/unpublish); PUT /api/organiser/events/{id}/layout (define/update seating rows and seats); GET /api/organiser/events/{id}/bookings (view/search bookings by name, email or reference). Check-in: POST /api/events/{id}/checkin (validate scanned QR token, check in once, warn on used/invalid/cancelled/wrong-event).
+Data model: organiser, event, seat, seat_lock, booking, booking_seat and audit_log entities covering the full booking and compliance lifecycle.
 
-**Related:** AC-001, AC-004, AC-005, AC-006, AC-008, AC-009, AC-011, AC-012, AC-013, AC-015, AC-016, AC-017, AC-018, AC-019, AC-020, AC-021, AC-022, AC-023, AC-024, AC-026, AC-027, AC-028, AC-029, AC-030, AC-031, AC-032, AC-034, AC-035, AC-036, AC-037, AC-038, AC-039, AC-040, AC-041, AC-042, AC-043, AC-045, AC-046, AC-047, AC-048, AC-049, AC-050, AC-051, AC-052, NFR-008, NFR-009
+organiser(id, email, password_hash, name, created_at); event(id, organiser_id, title, description, start_datetime, venue, is_free, price_minor, currency, status, cancellation_policy, search_tsv, created_at); seat(id, event_id, row_label, seat_number, price_minor, status); seat_lock(id, seat_id, hold_token, expires_at, created_at); booking(id, reference, event_id, guest_name, guest_email, guest_phone, status, qr_token, checked_in, checked_in_at, consent_given, consent_at, consent_notice_version, adult_confirmed, anonymised, created_at); booking_seat(id, booking_id, seat_id); audit_log(id, action, entity_type, entity_id, actor, ip_address, created_at).
 
-### ARCH-008 · approved · source: architecture:deployment_nodes
+**Related:** US-005, US-008, US-014, US-019, US-020
 
-Deployment topology is five AWS-managed nodes, all within ap-south-1 (Mumbai), supporting static hosting, containerised API, managed database, transactional email, and centralised logs.
+### ARCH-API-ENDPOINTS · approved · source: architecture:endpoints
 
-Web App: CloudFront + S3, static hosting + CDN serving Angular 22 build artifacts. Backend API: ECS Fargate, containerised Spring Boot 4.1 on JVM. PostgreSQL: RDS, managed PostgreSQL 16. Email: Amazon SES SMTP, transactional email endpoint. Logs: CloudWatch, log storage for CloudWatch Logs (backing the 180-day CERT-In retention).
+13 REST endpoints covering public event browsing/booking, booking lookup/cancel/consent-withdrawal, organiser auth/event/layout/bookings management, and check-in.
+
+GET /api/events; GET /api/events/{id}; GET /api/events/{id}/seats; POST /api/events/{id}/locks; POST /api/bookings; POST /api/bookings/lookup; POST /api/bookings/cancel; POST /api/bookings/withdraw-consent; POST /api/auth/login; GET /api/organiser/events; POST /api/organiser/events; PUT /api/organiser/events/{id}; PUT /api/organiser/events/{id}/layout; GET /api/organiser/events/{id}/bookings; POST /api/events/{id}/checkin.
+
+**Related:** US-001, US-002, US-003, US-004, US-005, US-008, US-010, US-011, US-012, US-013, US-014, US-016, US-017, US-018, US-019, US-020
+
+### ARCH-DEPLOY-NODES · approved · source: architecture:deployment_nodes
+
+Five deployment nodes, all in AWS Mumbai: CloudFront+S3 for the web app, ECS Fargate for the API, RDS for PostgreSQL, SES SMTP for email, and CloudWatch for logs.
+
+Web App (CloudFront + S3, Angular build artifacts); Backend API (ECS Fargate, Spring Boot 4.1 on JVM); PostgreSQL (RDS); Email (Amazon SES SMTP); Logs (CloudWatch Logs, 180-day retention per NFR-005).
 
 **Related:** NFR-004, NFR-005
 
-### ARCH-009 · approved · source: architecture:technology_decisions
+- ⚠ No deployment phase input exists yet confirming these nodes have actually been provisioned -- architecture specifies them as design intent only.
 
-Four stack decisions approved, each with alternatives considered and rationale given: Angular 22 frontend, Spring Boot 4.1 backend, PostgreSQL 16 database, and AWS (Mumbai) cloud.
+### ARCH-TECH-FRONTEND · approved · source: architecture:technology_decisions:frontend
 
-Frontend -- Angular 22 (alternatives considered: React, Vue). Chosen to build the responsive attendee/organiser SPA plus the browser-based QR check-in page, deployed as static assets via CloudFront/S3 in Mumbai; its forms/validation support the clear-message guest booking flow (NFR-003, NFR-010). Backend -- Spring Boot 4.1 (alternatives: FastAPI, NestJS). Chosen to host the REST API, transactional seat-locking via JPA/row locks, JWT organiser auth, QR generation, email dispatch and audit logging in one deployable, run on ECS Fargate in Mumbai. Database -- PostgreSQL 16 (alternatives: MySQL, MongoDB). Chosen to hold seats, locks, bookings and payment status together, enforcing seat-once-only via a unique constraint plus SELECT ... FOR UPDATE (NFR-001); its full-text/ILIKE search covers the small event volume without a separate search service, and it is the single India-hosted store for DPDP deletion. Cloud -- AWS (alternatives: Azure, GCP). Chosen so the full stack, RDS personal-data store, and SES SMTP email run inside AWS Mumbai (ap-south-1) in line with the DPDP consent notice's data-residency promise, with CloudWatch retaining activity logs 180 days for CERT-In (NFR-004, NFR-005).
+Angular 22 chosen (over React, Vue) to build the responsive SPA and QR check-in page, deployed as static assets via CloudFront/S3 in Mumbai.
 
-**Related:** NFR-001, NFR-003, NFR-004, NFR-005, NFR-010
+Approved stack per requirements. Angular forms/validation support the clear-message guest booking flow (NFR-003, NFR-010).
 
-- ⚠ Rationale given for each stack choice is high-level (feature fit, compliance fit) -- no cost, performance-benchmark, or team-skill comparison against the named alternatives is included in this input.
+**Related:** NFR-003, NFR-010
+
+### ARCH-TECH-BACKEND · approved · source: architecture:technology_decisions:backend
+
+Spring Boot 4.1 chosen (over FastAPI, NestJS) to host the REST API, seat-locking, JWT auth, QR generation, email dispatch and audit logging as one deployable on ECS Fargate.
+
+Approved stack per requirements.
+
+**Related:** NFR-001
+
+### ARCH-TECH-DB · approved · source: architecture:technology_decisions:database
+
+PostgreSQL 16 chosen (over MySQL, MongoDB) for seat-once-only enforcement via unique constraint + SELECT ... FOR UPDATE, built-in search, and single India-hosted store for DPDP deletion.
+
+Approved stack per requirements.
+
+**Related:** NFR-001, NFR-002, US-021
+
+### ARCH-TECH-CLOUD · approved · source: architecture:technology_decisions:cloud
+
+AWS chosen (over Azure, GCP), fully in Mumbai (ap-south-1), to host app, RDS data and SES email inside India, with CloudWatch retaining logs 180 days for CERT-In.
+
+Approved stack per requirements.
+
+**Related:** NFR-004, NFR-005
 <!-- sdlc:auto:end narrative -->
 
 <!-- sdlc:auto:start building-blocks -->

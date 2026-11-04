@@ -3,12 +3,13 @@
 > Maintained by QuorQ AI SDLC. Text between `sdlc:auto` markers is regenerated; anything outside them is yours and is kept.
 
 <!-- sdlc:auto:start narrative -->
-### TEST-GAP-001 · draft
+### TEST-RUN-CHECKS · approved · source: testing:run_checks
 
-No testing-phase input has been provided for this project.
+A generic automated check run passed completely (6/6), but is not linked to any specific ticket, story, or acceptance criterion.
 
-Testing phase input was reported as '(none available)'. No test plans, cases, or results exist yet to document.
+run_checks (ticket=None): status=succeeded, detail='6/6 checks passed'. No further breakdown of what the 6 checks covered is provided.
 
-- ⚠ Testing phase has not started -- no test plans, cases, or results available.
-- ⚠ Critical NFR-001 ('seat can never be sold twice') and the DPDP consent/deletion flows (US-007, US-020) have no recorded verification yet.
+- ⚠ No ticket or story is associated with this run, so it cannot be traced to any specific acceptance criteria.
+- ⚠ No test plan, test type (unit/integration/E2E/security), or environment is documented.
+- ⚠ The 50 acceptance criteria across the 21 stories (and the 10 NFRs) have no individually recorded test evidence in the input.
 <!-- sdlc:auto:end narrative -->

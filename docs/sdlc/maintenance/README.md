@@ -3,11 +3,11 @@
 > Maintained by QuorQ AI SDLC. Text between `sdlc:auto` markers is regenerated; anything outside them is yours and is kept.
 
 <!-- sdlc:auto:start narrative -->
-### MAINT-GAP-001 · draft
+### MAINT-NONE · draft
 
-No post-deployment or maintenance notes exist for this project.
+No post-deployment or maintenance activity has been recorded for this project yet.
 
-Maintenance phase input was reported as '(none available)'. No incidents, patches, or operational notes exist yet to document.
+Post-deployment/maintenance input was explicitly empty ('none available'). No incidents, support tickets, monitoring findings, or patches can be documented.
 
-- ⚠ No maintenance activity recorded yet -- project has not reached post-deployment.
+- ⚠ No maintenance phase has started; there is no incident-response, monitoring, or support process documented, including none for the CERT-In 6-hour cyber-incident reporting duty.
 <!-- sdlc:auto:end narrative -->

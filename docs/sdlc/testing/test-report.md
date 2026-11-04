@@ -7,11 +7,19 @@ _No E2E run yet._
 <!-- sdlc:auto:end e2e -->
 
 <!-- sdlc:auto:start unit -->
-_No unit-test run yet._
+**Coverage:** —
+
+**Test cases:** — / — written
+
+**Lines written:** —
+
+**Files deferred:** —
 <!-- sdlc:auto:end unit -->
 
 <!-- sdlc:auto:start dev-checks -->
-### Sprint —
+### Sprint 1
 
-_No test steps recorded._
+| Step | Status | Ticket | Finished |
+|---|---|---|---|
+| run_checks | succeeded | — | 2026-11-04 |
 <!-- sdlc:auto:end dev-checks -->
