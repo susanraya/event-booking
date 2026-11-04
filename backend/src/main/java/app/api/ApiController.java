@@ -3,6 +3,8 @@ package app.api;
 import app.Stubs;
 import app.service.EventResponse;
 import app.service.EventService;
+import app.service.SeatResponse;
+import app.service.SeatService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -26,10 +28,13 @@ public class ApiController {
 
   private final AuthService authService;
   private final EventService eventService;
+  private final SeatService seatService;
 
-  public ApiController(AuthService authService, EventService eventService) {
+  public ApiController(
+      AuthService authService, EventService eventService, SeatService seatService) {
     this.authService = authService;
     this.eventService = eventService;
+    this.seatService = seatService;
   }
 
   /**
@@ -49,8 +54,8 @@ public class ApiController {
 
   /** Seating layout with per-seat availability (AC-009, AC-011). */
   @GetMapping("/api/events/{id}/seats")
-  public Map<String, String> getApiEventsByIdSeats() {
-    return Stubs.notImplemented("GET /api/events/{id}/seats");
+  public List<SeatResponse> getApiEventsByIdSeats(@PathVariable String id) {
+    return seatService.listSeats(id);
   }
 
   /**

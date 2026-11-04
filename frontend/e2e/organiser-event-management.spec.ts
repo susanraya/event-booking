@@ -153,7 +153,56 @@ test.describe("organiser seating layout for attendee selection (AC-037)", () => 
     // Seats appear for attendee selection, distinguishable by row and number.
     await expect(page.getByLabel(/row j, seat 1[,.]?/i).first()).toBeVisible();
     const seatButtons = page.locator("button[aria-label*='Row']");
-    await expect(seatButtons).toHaveCount(await seatButtons.count());
-    expect(await seatButtons.count()).toBeGreaterThanOrEqual(300);
+    const seatCount = await seatButtons.count();
+    expect(seatCount).toBeGreaterThanOrEqual(300);
+
+    // AC-038 / NFR-002: with hundreds of seats saved, every seat is uniquely identifiable by
+    // row and seat number -- no duplicate row/seat combinations in the rendered layout.
+    const labels = await seatButtons.evaluateAll((els) =>
+      els.map((el) => el.getAttribute("aria-label")),
+    );
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  test("[AC-038] each seat in a large layout is uniquely identifiable by row and seat number", async ({
+    page,
+  }) => {
+    await signIn(page);
+
+    const title = uniqueTitle("Unique Seats Hall");
+    await page.getByRole("button", { name: "New event" }).click();
+    await page.getByLabel("Title").fill(title);
+    await page.locator("#c-start").fill("2026-12-23T19:00");
+    await page.getByLabel("Venue").fill("Siri Fort Auditorium, Delhi");
+    await page.getByRole("button", { name: /save as draft/i }).click();
+    await page.getByText(title).click();
+
+    await page.getByRole("tab", { name: /seating layout/i }).click();
+
+    const rows = [
+      { label: "A", seats: "50" },
+      { label: "B", seats: "50" },
+      { label: "C", seats: "50" },
+    ];
+    for (const row of rows) {
+      await page.locator("#new-row-label").fill(row.label);
+      await page.locator("#new-row-seats").fill(row.seats);
+      await page.getByRole("button", { name: /add row/i }).click();
+    }
+    await page.getByRole("button", { name: /save layout/i }).click();
+
+    await page.getByRole("button", { name: /publish event/i }).click();
+    await page.getByRole("button", { name: "Public page" }).click();
+
+    // Every seat across the 150-seat layout carries a distinct row+seat identifier, and
+    // seat 1 of row A is distinguishable from seat 1 of row B.
+    const seatButtons = page.locator("button[aria-label*='Row']");
+    expect(await seatButtons.count()).toBe(150);
+    const labels = await seatButtons.evaluateAll((els) =>
+      els.map((el) => el.getAttribute("aria-label")),
+    );
+    expect(new Set(labels).size).toBe(150);
+    await expect(page.getByLabel(/row a, seat 1[,.]?/i)).toBeVisible();
+    await expect(page.getByLabel(/row b, seat 1[,.]?/i)).toBeVisible();
   });
 });

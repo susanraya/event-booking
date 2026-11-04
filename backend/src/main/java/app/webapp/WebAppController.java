@@ -4,6 +4,9 @@ import app.Stubs;
 import app.service.CreateEventRequest;
 import app.service.EventResponse;
 import app.service.EventService;
+import app.service.LayoutRequest;
+import app.service.LayoutResponse;
+import app.service.SeatService;
 import app.service.UpdateEventRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -29,9 +32,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class WebAppController {
 
   private final EventService eventService;
+  private final SeatService seatService;
 
-  public WebAppController(EventService eventService) {
+  public WebAppController(EventService eventService, SeatService seatService) {
     this.eventService = eventService;
+    this.seatService = seatService;
   }
 
   /** Organiser dashboard listing events with status and date/time (AC-043). */
@@ -64,8 +69,13 @@ public class WebAppController {
 
   /** Define/update seating layout rows and seats (AC-037, AC-038). */
   @PutMapping("/api/organiser/events/{id}/layout")
-  public Map<String, String> putApiOrganiserEventsByIdLayout() {
-    return Stubs.notImplemented("PUT /api/organiser/events/{id}/layout");
+  public LayoutResponse putApiOrganiserEventsByIdLayout(
+      Authentication authentication,
+      @PathVariable String id,
+      @RequestBody LayoutRequest request,
+      HttpServletRequest httpRequest) {
+    return seatService.saveLayout(
+        authentication.getName(), id, request, httpRequest.getRemoteAddr());
   }
 
   /** View and search an event's bookings by name, email or reference (AC-045, AC-046). */

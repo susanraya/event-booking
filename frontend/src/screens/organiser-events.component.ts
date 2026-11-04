@@ -894,6 +894,7 @@ export default class Screen extends ScreenBase {
   removeKey = signal(null);
   justAdded = signal(null);
   rowSeq = signal(100);
+  layoutLoading = signal(false);
 
   pIsFree = signal(false);
   pPrice = signal(0);
@@ -934,6 +935,46 @@ export default class Screen extends ScreenBase {
       rows: e.rows || [],
       bookings: e.bookings || [],
     };
+  }
+
+  // Reloads the saved layout from GET /api/events/{id}/seats -- the source of truth for
+  // what is actually booked and laid out, separate from the organiser listing payload.
+  // Falls back to whatever rows the event already carries if the call fails, so a screen
+  // opened before the backend is live still shows something sensible.
+  async loadLayoutFromApi(id) {
+    this.layoutLoading.set(true);
+    try {
+      const data = await apiFetch(`/api/events/${id}/seats`);
+      const seats = Array.isArray(data) ? data : (data && data.seats) || [];
+      const byRow = new Map();
+      const order = [];
+      for (const s of seats) {
+        const label = (s.row_label ?? s.rowLabel ?? "").toString().trim();
+        if (!label) continue;
+        if (!byRow.has(label)) {
+          byRow.set(label, 0);
+          order.push(label);
+        }
+        const n = Number(s.seat_number ?? s.seatNumber ?? 0);
+        byRow.set(label, Math.max(byRow.get(label), n || byRow.get(label) + 1));
+      }
+      const rows = order.map((label, i) => ({
+        key: "row-" + label + "-" + i,
+        row_label: label,
+        seats: byRow.get(label),
+      }));
+      this.layoutRows.set(rows);
+    } catch (e) {
+      if (this.handleUnauthorized(e)) return;
+      const ev = this.events().find((x) => x.id === id);
+      if (ev) {
+        this.layoutRows.set(
+          ev.rows.map((r) => ({ key: r.key, row_label: r.row_label, seats: r.seats })),
+        );
+      }
+    } finally {
+      this.layoutLoading.set(false);
+    }
   }
 
   handleUnauthorized(e) {
@@ -1156,6 +1197,7 @@ export default class Screen extends ScreenBase {
     if (ev && !this.loadedOnce) {
       this.loadedOnce = true;
       this.loadForms(ev);
+      this.loadLayoutFromApi(ev.id);
     }
   });
   loadedOnce = false;
@@ -1349,6 +1391,7 @@ export default class Screen extends ScreenBase {
     this.confirmUnpublish.set(false);
     this.bookingQuery.set("");
     this.loadForms(e);
+    this.loadLayoutFromApi(id);
   }
 
   startCreate() {
@@ -1589,7 +1632,7 @@ export default class Screen extends ScreenBase {
     }, 900);
   }
 
-  saveLayout() {
+  async saveLayout() {
     const rows = this.layoutRows();
     if (rows.length === 0) {
       this.layoutError.set("A layout needs at least one row before it can be saved.");
@@ -1617,12 +1660,19 @@ export default class Screen extends ScreenBase {
     }
     this.layoutError.set("");
     this.saving.set(true);
-    setTimeout(() => {
-      const clean = rows.map((r) => ({
-        key: r.key,
-        row_label: (r.row_label || "").trim().toUpperCase(),
-        seats: Number(r.seats),
-      }));
+    const id = this.selectedId();
+    const clean = rows.map((r) => ({
+      key: r.key,
+      row_label: (r.row_label || "").trim().toUpperCase(),
+      seats: Number(r.seats),
+    }));
+    try {
+      await apiFetch(`/api/organiser/events/${id}/layout`, {
+        method: "PUT",
+        body: JSON.stringify({
+          rows: clean.map((r) => ({ label: r.row_label, seatCount: r.seats })),
+        }),
+      });
       this.updateSelected({ rows: clean });
       this.layoutRows.set(
         clean.map((r) => ({ key: r.key, row_label: r.row_label, seats: r.seats })),
@@ -1638,7 +1688,20 @@ export default class Screen extends ScreenBase {
           total +
           " seats, each one addressed by its row label and seat number.",
       );
-    }, 450);
+      await this.loadLayoutFromApi(id);
+    } catch (e) {
+      this.saving.set(false);
+      if (this.handleUnauthorized(e)) return;
+      const errs = this.applyServerErrors(e && e.body);
+      const rowsMessage = errs.rows || errs.row_label || errs.label || errs.seatCount;
+      if (rowsMessage) {
+        this.layoutError.set(rowsMessage);
+      } else {
+        this.layoutError.set(
+          e instanceof Error ? e.message : "The layout could not be saved.",
+        );
+      }
+    }
   }
 
   discardLayout() {

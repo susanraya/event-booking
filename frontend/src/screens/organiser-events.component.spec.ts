@@ -32,7 +32,9 @@ const EVENT_A = {
 };
 
 async function setup(initialFetch: unknown) {
-  (global.fetch as unknown as Mock) = vi.fn().mockResolvedValue(jsonResponse(true, 200, initialFetch));
+  (global.fetch as unknown as Mock) = vi
+    .fn()
+    .mockResolvedValue(jsonResponse(true, 200, initialFetch));
   TestBed.configureTestingModule({
     imports: [Screen],
     providers: [
@@ -97,8 +99,8 @@ describe("Organiser events screen", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const call = (global.fetch as unknown as Mock).mock.calls.find((c) =>
-      String(c[0]).includes("/api/organiser/events") && c[1]?.method === "POST",
+    const call = (global.fetch as unknown as Mock).mock.calls.find(
+      (c) => String(c[0]).includes("/api/organiser/events") && c[1]?.method === "POST",
     );
     expect(call).toBeTruthy();
     expect(JSON.parse(call[1].body)).toMatchObject({ title: "New Recital", venue: "Hall 2" });
@@ -136,9 +138,7 @@ describe("Organiser events screen", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const call = (global.fetch as unknown as Mock).mock.calls.find(
-      (c) => c[1]?.method === "PUT",
-    );
+    const call = (global.fetch as unknown as Mock).mock.calls.find((c) => c[1]?.method === "PUT");
     expect(call[0]).toContain("/api/organiser/events/evt_a");
     const text: string = fixture.nativeElement.textContent;
     expect(text).toContain("Thumri Evening — Updated");
@@ -200,9 +200,7 @@ describe("Organiser events screen", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const call = (global.fetch as unknown as Mock).mock.calls.find(
-      (c) => c[1]?.method === "PUT",
-    );
+    const call = (global.fetch as unknown as Mock).mock.calls.find((c) => c[1]?.method === "PUT");
     expect(JSON.parse(call[1].body)).toMatchObject({ is_free: true, price_minor: 0 });
     expect(comp.events().find((e) => e.id === "evt_a").is_free).toBe(true);
   });
@@ -231,5 +229,213 @@ describe("Organiser events screen", () => {
 
     expect(router.url).toBe("/organiser-sign-in");
     expect(getToken()).toBeNull();
+  });
+});
+
+describe("Organiser events screen — seating layout editor (US-014-2)", () => {
+  beforeEach(() => {
+    clearToken();
+    vi.restoreAllMocks();
+  });
+
+  it("[AC-037] adding and removing rows updates the live seat-count summary", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+
+    comp.selectEvent("evt_a");
+    comp.tab.set("seating");
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(comp.totalSeats()).toBe(0);
+
+    comp.newRowLabel.set("A");
+    comp.newRowSeats.set(10);
+    comp.addRow({ preventDefault: () => {} });
+    fixture.detectChanges();
+    expect(comp.totalSeats()).toBe(10);
+    expect(fixture.nativeElement.textContent).toContain("10");
+
+    comp.newRowLabel.set("B");
+    comp.newRowSeats.set(12);
+    comp.addRow({ preventDefault: () => {} });
+    fixture.detectChanges();
+    expect(comp.totalSeats()).toBe(22);
+
+    const rowA = comp.layoutRows().find((r) => r.row_label === "A");
+    comp.removeRow(rowA);
+    fixture.detectChanges();
+    expect(comp.totalSeats()).toBe(12);
+    expect(fixture.nativeElement.textContent).toContain("12");
+  });
+
+  it("[AC-037] each seat shows its row label and seat number", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+    comp.selectEvent("evt_a");
+    comp.tab.set("seating");
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    comp.newRowLabel.set("C");
+    comp.newRowSeats.set(3);
+    comp.addRow({ preventDefault: () => {} });
+    fixture.detectChanges();
+
+    const row = comp.layoutRows().find((r) => r.row_label === "C");
+    expect(row.seats).toBe(3);
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain("C");
+  });
+
+  it("[AC-037] saving posts the layout via PUT, and the saved layout reloads from GET seats", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+
+    comp.selectEvent("evt_a");
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    comp.newRowLabel.set("A");
+    comp.newRowSeats.set(2);
+    comp.addRow({ preventDefault: () => {} });
+    comp.newRowLabel.set("B");
+    comp.newRowSeats.set(1);
+    comp.addRow({ preventDefault: () => {} });
+    fixture.detectChanges();
+
+    const seatsAfterSave = [
+      { id: "s1", row_label: "A", seat_number: 1, status: "available", price_minor: 0 },
+      { id: "s2", row_label: "A", seat_number: 2, status: "available", price_minor: 0 },
+      { id: "s3", row_label: "B", seat_number: 1, status: "booked", price_minor: 0 },
+    ];
+    (global.fetch as unknown as Mock).mockResolvedValueOnce(jsonResponse(true, 200, { rows: [] }));
+    (global.fetch as unknown as Mock).mockResolvedValueOnce(
+      jsonResponse(true, 200, seatsAfterSave),
+    );
+
+    await comp.saveLayout();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const putCall = (global.fetch as unknown as Mock).mock.calls.find(
+      (c) => c[1]?.method === "PUT" && String(c[0]).includes("/layout"),
+    );
+    expect(putCall[0]).toContain("/api/organiser/events/evt_a/layout");
+    expect(JSON.parse(putCall[1].body)).toMatchObject({
+      rows: [
+        { label: "A", seatCount: 2 },
+        { label: "B", seatCount: 1 },
+      ],
+    });
+
+    const seatsCall = (global.fetch as unknown as Mock).mock.calls.find((c) =>
+      String(c[0]).includes("/api/events/evt_a/seats"),
+    );
+    expect(seatsCall).toBeTruthy();
+    expect(comp.layoutRows().map((r) => r.row_label)).toEqual(["A", "B"]);
+    expect(comp.totalSeats()).toBe(3);
+  });
+
+  it("[AC-038, NFR-002] a layout of several hundred seats renders without error", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+    comp.selectEvent("evt_a");
+    comp.tab.set("seating");
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    for (let i = 0; i < 10; i++) {
+      comp.newRowLabel.set(String.fromCharCode(65 + i));
+      comp.newRowSeats.set(30);
+      comp.addRow({ preventDefault: () => {} });
+    }
+    fixture.detectChanges();
+
+    expect(comp.totalSeats()).toBe(300);
+    expect(fixture.nativeElement.textContent).toContain("300");
+  });
+
+  it("blocks saving a layout with zero rows", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+    comp.selectEvent("evt_a");
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const callsBefore = (global.fetch as unknown as Mock).mock.calls.length;
+    await comp.saveLayout();
+    fixture.detectChanges();
+
+    expect(comp.layoutError()).toContain("at least one row");
+    // No PUT was issued.
+    expect((global.fetch as unknown as Mock).mock.calls.length).toBe(callsBefore);
+  });
+
+  it("blocks adding a row with zero seats", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+    comp.selectEvent("evt_a");
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    comp.newRowLabel.set("A");
+    comp.newRowSeats.set(0);
+    comp.addRow({ preventDefault: () => {} });
+    fixture.detectChanges();
+
+    expect(comp.layoutRows().length).toBe(0);
+    expect(comp.addRowError()).toBeTruthy();
+  });
+
+  it("blocks adding a row with a duplicate row label", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+    comp.selectEvent("evt_a");
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    comp.newRowLabel.set("A");
+    comp.newRowSeats.set(10);
+    comp.addRow({ preventDefault: () => {} });
+    fixture.detectChanges();
+
+    comp.newRowLabel.set("A");
+    comp.newRowSeats.set(5);
+    comp.addRow({ preventDefault: () => {} });
+    fixture.detectChanges();
+
+    expect(comp.layoutRows().length).toBe(1);
+    expect(comp.addRowError()).toContain("already exists");
+  });
+
+  it("shows the server's validation message when saving the layout is rejected", async () => {
+    const fixture = await setup([EVENT_A]);
+    const comp = fixture.componentInstance;
+    comp.selectEvent("evt_a");
+    comp.tab.set("seating");
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    comp.newRowLabel.set("A");
+    comp.newRowSeats.set(10);
+    comp.addRow({ preventDefault: () => {} });
+    fixture.detectChanges();
+
+    (global.fetch as unknown as Mock).mockResolvedValueOnce(
+      jsonResponse(false, 400, {
+        message: "Validation failed",
+        field: "rows",
+        errors: { rows: "Row A conflicts with an existing booking." },
+      }),
+    );
+
+    await comp.saveLayout();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(comp.layoutError()).toBe("Row A conflicts with an existing booking.");
+    expect(fixture.nativeElement.textContent).toContain(
+      "Row A conflicts with an existing booking.",
+    );
   });
 });
