@@ -1,10 +1,12 @@
 // @ts-nocheck -- generated from the approved design under its plain-JavaScript contract; not hand-written TypeScript.
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Component, signal, computed } from "@angular/core";
+
+import { Component, signal, computed, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { ActivatedRoute } from "@angular/router";
 
 import { ScreenBase } from "@/lib/screen-base";
 import { UI_KIT } from "@/lib/ui";
+import { apiFetch } from "@/lib/api";
 const template = `
 <style>
   .vt-focus:focus-visible{outline:2px solid var(--vt-accent, #8fae8b);outline-offset:2px;border-radius:4px}
@@ -57,20 +59,20 @@ const template = `
 
       <header class="mb-8">
         <p class="text-[11px] uppercase tracking-[0.24em]" [style.color]="brand.accentColor">
-          {{ event.organiser }} · one night only
+          {{ event().organiser }} · one night only
         </p>
         <h1 class="mt-3 text-4xl sm:text-5xl leading-[1.1] max-w-3xl" [style.font-family]="brand.fontHeading">
-          {{ event.title }}
+          {{ event().title }}
         </h1>
         <div class="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm" [style.color]="brand.neutralColor">
           <span class="inline-flex items-center gap-2">
-            <ui-icon name="Calendar" class="h-4 w-4" aria-hidden="true"></ui-icon>{{ event.start_datetime }}
+            <ui-icon name="Calendar" class="h-4 w-4" aria-hidden="true"></ui-icon>{{ event().start_datetime }}
           </span>
           <span class="inline-flex items-center gap-2">
-            <ui-icon name="Clock" class="h-4 w-4" aria-hidden="true"></ui-icon>Doors {{ event.doors }}
+            <ui-icon name="Clock" class="h-4 w-4" aria-hidden="true"></ui-icon>Doors {{ event().doors }}
           </span>
           <span class="inline-flex items-center gap-2">
-            <ui-icon name="Home" class="h-4 w-4" aria-hidden="true"></ui-icon>{{ event.venue }}
+            <ui-icon name="Home" class="h-4 w-4" aria-hidden="true"></ui-icon>{{ event().venue }}
           </span>
           <span uiBadge variant="success">Published</span>
         </div>
@@ -80,7 +82,7 @@ const template = `
            [style.border-color]="hairline" [style.background-color]="surface"
            [style.borderColor]="hairline">
         <div class="px-6 py-5" [style.font-variant-numeric]="'tabular-nums'">
-          <ui-stat label="Tickets from" [value]="money(95000)" hint="Rear stalls, rows G–H"></ui-stat>
+          <ui-stat label="Tickets from" [value]="priceLabel()" hint="Rear stalls, rows G–H"></ui-stat>
         </div>
         <div class="px-6 py-5" [style.border-color]="hairlineSoft" [style.font-variant-numeric]="'tabular-nums'">
           <ui-stat label="Seats available" [value]="seatsLeft() + ' of 96'" hint="Updated {{ lastSync() }}"></ui-stat>
@@ -172,8 +174,8 @@ const template = `
                  [style.background-color]="brand.primaryColor" [style.color]="brand.backgroundColor">
               <div class="px-6 pt-6 pb-5">
                 <p class="text-[10px] uppercase tracking-[0.26em]" [style.color]="stubMuted">Mehfil Live · admit {{ booking().seats.length }}</p>
-                <p class="mt-2 text-xl leading-snug" [style.font-family]="brand.fontHeading">{{ event.title }}</p>
-                <p class="mt-1 text-xs" [style.color]="stubMuted">{{ event.start_datetime }} · {{ event.venue }}</p>
+                <p class="mt-2 text-xl leading-snug" [style.font-family]="brand.fontHeading">{{ event().title }}</p>
+                <p class="mt-1 text-xs" [style.color]="stubMuted">{{ event().start_datetime }} · {{ event().venue }}</p>
                 <ul class="mt-4 flex flex-wrap gap-1.5">
                   @for (s of booking().seats; track s.id) {
                     <li class="rounded-[4px] border px-2 py-1 text-[11px]"
@@ -224,7 +226,7 @@ const template = `
                 <div uiCardHeader class="pb-2">
                   <h2 uiCardTitle class="text-2xl" [style.font-family]="brand.fontHeading">About this evening</h2>
                   <p uiCardDescription [style.color]="brand.neutralColor">
-                    {{ event.is_free ? 'Free entry' : 'Tickets from ' + money(95000) }} · 96 seats · rows A–H
+                    {{ event().is_free ? 'Free entry' : 'Tickets from ' + priceLabel() }} · 96 seats · rows A–H
                   </p>
                 </div>
                 <div uiCardContent class="pt-4">
@@ -232,7 +234,7 @@ const template = `
                   <div class="pt-6 text-sm leading-relaxed vt-fade" [style.color]="brand.neutralColor">
                     @switch (infoTab()) {
                       @case ('about') {
-                        <p class="max-w-prose">{{ event.description }}</p>
+                        <p class="max-w-prose">{{ event().description }}</p>
                         <p class="mt-4 max-w-prose">
                           Support from Maati Baani at 7:30 pm sharp. Kabir Café on stage at 8:25 pm.
                         </p>
@@ -289,7 +291,7 @@ const template = `
                           Payment is settled with Mehfil Live at the venue or by UPI after booking — this app never takes
                           a card payment, so your seats are confirmed the moment you submit the form.
                         </p>
-                        <p class="mt-3 max-w-prose">{{ event.cancellation_policy }}</p>
+                        <p class="mt-3 max-w-prose">{{ event().cancellation_policy }}</p>
                       }
                     }
                   </div>
@@ -562,7 +564,7 @@ const template = `
             <div uiCard [style.background-color]="surfaceRaised" [style.border-color]="hairline">
               <div uiCardHeader class="pb-3">
                 <h2 id="summary-h" uiCardTitle class="text-lg" [style.font-family]="brand.fontHeading">Your selection</h2>
-                <p uiCardDescription [style.color]="brand.neutralColor">{{ event.start_datetime }}</p>
+                <p uiCardDescription [style.color]="brand.neutralColor">{{ event().start_datetime }}</p>
               </div>
 
               <div uiCardContent class="pt-2">
@@ -672,119 +674,164 @@ const template = `
 })
 export default class Screen extends ScreenBase {
   /* ---- surface + semantic tokens (derived from the Velvet brand roles) ---- */
-  surface = 'rgba(255,255,255,0.035)';
-  surfaceRaised = 'rgba(255,255,255,0.055)';
-  hairline = 'rgba(255,255,255,0.11)';
-  hairlineSoft = 'rgba(255,255,255,0.07)';
-  inputBg = 'rgba(255,255,255,0.04)';
-  danger = '#c98b74';
-  warn = '#d9b26a';
-  stubRule = 'rgba(22,33,28,0.30)';
-  stubMuted = 'rgba(22,33,28,0.62)';
+  surface = "rgba(255,255,255,0.035)";
+  surfaceRaised = "rgba(255,255,255,0.055)";
+  hairline = "rgba(255,255,255,0.11)";
+  hairlineSoft = "rgba(255,255,255,0.07)";
+  inputBg = "rgba(255,255,255,0.04)";
+  danger = "#c98b74";
+  warn = "#d9b26a";
+  stubRule = "rgba(22,33,28,0.30)";
+  stubMuted = "rgba(22,33,28,0.62)";
 
-  consentVersion = 'v2.1 (14 Oct 2026)';
+  consentVersion = "v2.1 (14 Oct 2026)";
   maxSeats = 6;
 
-  event = {
-    id: 'evt_8821',
-    organiser: 'Mehfil Live',
-    title: 'Kabir Café — Dhai Akhar Tour',
-    venue: 'Royal Opera House, Girgaon, Mumbai',
-    start_datetime: 'Saturday 22 November 2026 · 7:30 pm',
-    doors: '6:45 pm',
+  private readonly route = inject(ActivatedRoute);
+
+  event = signal({
+    id: "evt_8821",
+    organiser: "Mehfil Live",
+    title: "Kabir Café — Dhai Akhar Tour",
+    venue: "Royal Opera House, Girgaon, Mumbai",
+    start_datetime: "Saturday 22 November 2026 · 7:30 pm",
+    doors: "6:45 pm",
     is_free: false,
-    currency: 'INR',
-    status: 'published',
-    cancellation_policy: 'Cancel up to 48 hours before showtime for a full refund, settled by Mehfil Live outside the app.',
-    description: 'Kabir Café bring the Dhai Akhar tour to the Royal Opera House for one night — Kabir’s dohas set to four-part harmony, upright bass and a borrowed dholak. The 2026 set adds three new pieces from the Bhanwara sessions, and the band close, as they always do, with Halke Halke.'
-  };
+    price_minor: 95000,
+    currency: "INR",
+    status: "published",
+    cancellation_policy:
+      "Cancel up to 48 hours before showtime for a full refund, settled by Mehfil Live outside the app.",
+    description:
+      "Kabir Café bring the Dhai Akhar tour to the Royal Opera House for one night — Kabir’s dohas set to four-part harmony, upright bass and a borrowed dholak. The 2026 set adds three new pieces from the Bhanwara sessions, and the band close, as they always do, with Halke Halke.",
+  });
+
+  // Price or Free, read from the API (AC-039, AC-040). Shown in the detail stat and the
+  // "about this evening" summary -- the two booking-flow headings that quote a price.
+  priceLabel = computed(() =>
+    this.event().is_free ? "Free" : this.money(this.event().price_minor),
+  );
+
+  constructor() {
+    super();
+    const id = this.route.snapshot.paramMap.get("id") ?? this.event().id;
+    apiFetch(`/api/events/${id}`)
+      .then((fetched) => {
+        this.event.set({ ...this.event(), ...fetched });
+      })
+      .catch(() => {
+        // Leave the fallback event in place -- the screen still renders.
+      });
+  }
 
   lineup = [
-    { name: 'Neeraj Arya', role: 'Vocals, guitar' },
-    { name: 'Mukund Ramaswamy', role: 'Violin' },
-    { name: 'Raman Iyer', role: 'Mandolin' },
-    { name: 'Viren Solanki', role: 'Percussion' },
-    { name: 'Maati Baani', role: 'Support, 7:30 pm' }
+    { name: "Neeraj Arya", role: "Vocals, guitar" },
+    { name: "Mukund Ramaswamy", role: "Violin" },
+    { name: "Raman Iyer", role: "Mandolin" },
+    { name: "Viren Solanki", role: "Percussion" },
+    { name: "Maati Baani", role: "Support, 7:30 pm" },
   ];
 
   tiers = [
-    { name: 'Front stalls', rows: 'A–C', price_minor: 195000 },
-    { name: 'Stalls', rows: 'D–F', price_minor: 145000 },
-    { name: 'Rear stalls', rows: 'G–H', price_minor: 95000 }
+    { name: "Front stalls", rows: "A–C", price_minor: 195000 },
+    { name: "Stalls", rows: "D–F", price_minor: 145000 },
+    { name: "Rear stalls", rows: "G–H", price_minor: 95000 },
   ];
 
   steps = [
-    { key: 'seats', label: 'Seats', index: 0, last: false },
-    { key: 'details', label: 'Your details', index: 1, last: false },
-    { key: 'ticket', label: 'Ticket', index: 2, last: true }
+    { key: "seats", label: "Seats", index: 0, last: false },
+    { key: "details", label: "Your details", index: 1, last: false },
+    { key: "ticket", label: "Ticket", index: 2, last: true },
   ];
 
   legend = [
-    { key: 'available', label: 'Available', glyph: '' },
-    { key: 'selected', label: 'Your pick', glyph: '✓' },
-    { key: 'held', label: 'On hold by someone else', glyph: '' },
-    { key: 'booked', label: 'Booked', glyph: '×' }
+    { key: "available", label: "Available", glyph: "" },
+    { key: "selected", label: "Your pick", glyph: "✓" },
+    { key: "held", label: "On hold by someone else", glyph: "" },
+    { key: "booked", label: "Booked", glyph: "×" },
   ];
 
   infoTabs = [
-    { value: 'about', label: 'About' },
-    { value: 'venue', label: 'Venue & access' },
-    { value: 'tickets', label: 'Tickets & policy' }
+    { value: "about", label: "About" },
+    { value: "venue", label: "Venue & access" },
+    { value: "tickets", label: "Tickets & policy" },
   ];
-  infoTab = signal('about');
+  infoTab = signal("about");
 
   rowDefs = [
-    { label: 'A', tier: 'Front stalls', price_minor: 195000, count: 12 },
-    { label: 'B', tier: 'Front stalls', price_minor: 195000, count: 12 },
-    { label: 'C', tier: 'Front stalls', price_minor: 195000, count: 12 },
-    { label: 'D', tier: 'Stalls', price_minor: 145000, count: 12 },
-    { label: 'E', tier: 'Stalls', price_minor: 145000, count: 12 },
-    { label: 'F', tier: 'Stalls', price_minor: 145000, count: 12 },
-    { label: 'G', tier: 'Rear stalls', price_minor: 95000, count: 12 },
-    { label: 'H', tier: 'Rear stalls', price_minor: 95000, count: 12 }
+    { label: "A", tier: "Front stalls", price_minor: 195000, count: 12 },
+    { label: "B", tier: "Front stalls", price_minor: 195000, count: 12 },
+    { label: "C", tier: "Front stalls", price_minor: 195000, count: 12 },
+    { label: "D", tier: "Stalls", price_minor: 145000, count: 12 },
+    { label: "E", tier: "Stalls", price_minor: 145000, count: 12 },
+    { label: "F", tier: "Stalls", price_minor: 145000, count: 12 },
+    { label: "G", tier: "Rear stalls", price_minor: 95000, count: 12 },
+    { label: "H", tier: "Rear stalls", price_minor: 95000, count: 12 },
   ];
 
-  bookedIds = ['A3', 'A4', 'A5', 'B7', 'B8', 'B12', 'C1', 'C2', 'C9', 'D5', 'D12',
-    'E3', 'E8', 'E9', 'F2', 'F3', 'F11', 'G6', 'G7', 'H1', 'H2', 'H12'];
-  heldIds = ['C6', 'D7', 'D8', 'G3'];
+  bookedIds = [
+    "A3",
+    "A4",
+    "A5",
+    "B7",
+    "B8",
+    "B12",
+    "C1",
+    "C2",
+    "C9",
+    "D5",
+    "D12",
+    "E3",
+    "E8",
+    "E9",
+    "F2",
+    "F3",
+    "F11",
+    "G6",
+    "G7",
+    "H1",
+    "H2",
+    "H12",
+  ];
+  heldIds = ["C6", "D7", "D8", "G3"];
 
   seats = signal(this.buildSeats());
   selectedIds = signal([]);
-  step = signal('seats');
+  step = signal("seats");
 
-  seatNotice = signal('');
-  noticeTone = signal('info');
-  lastSync = signal('2 minutes ago');
+  seatNotice = signal("");
+  noticeTone = signal("info");
+  lastSync = signal("2 minutes ago");
   syncing = signal(false);
   releasedOnce = false;
 
   holdSeconds = signal(420);
   holdExpired = signal(false);
-  holdToken = signal('DQ7F-2B91');
-  holdExpiryLabel = signal('');
-  expiredSeatsLabel = signal('your seats');
+  holdToken = signal("DQ7F-2B91");
+  holdExpiryLabel = signal("");
+  expiredSeatsLabel = signal("your seats");
 
-  guestName = signal('');
-  guestEmail = signal('');
-  guestPhone = signal('');
+  guestName = signal("");
+  guestEmail = signal("");
+  guestPhone = signal("");
   consentGiven = signal(false);
   adultConfirmed = signal(false);
   errors = signal({});
   submitting = signal(false);
 
   booking = signal(null);
-  usedReferences = ['MEH-7PQ2K4', 'MEH-2JD9WX', 'MEH-5RT8MN'];
+  usedReferences = ["MEH-7PQ2K4", "MEH-2JD9WX", "MEH-5RT8MN"];
 
   timers = [];
   intervalId = null;
 
   /* ------------------------------ derived ------------------------------- */
 
-  isPublished = computed(() => this.event.status === 'published');
+  isPublished = computed(() => this.event().status === "published");
 
   stepIndex = computed(() => {
     const s = this.step();
-    return s === 'seats' ? 0 : (s === 'details' ? 1 : 2);
+    return s === "seats" ? 0 : s === "details" ? 1 : 2;
   });
 
   rowsView = computed(() => {
@@ -794,13 +841,15 @@ export default class Screen extends ScreenBase {
       label: rd.label,
       tier: rd.tier,
       price_minor: rd.price_minor,
-      seats: all.filter((s) => s.row_label === rd.label).map((s) => ({
-        id: s.id,
-        row_label: s.row_label,
-        seat_number: s.seat_number,
-        price_minor: s.price_minor,
-        state: sel.indexOf(s.id) >= 0 ? 'selected' : s.status
-      }))
+      seats: all
+        .filter((s) => s.row_label === rd.label)
+        .map((s) => ({
+          id: s.id,
+          row_label: s.row_label,
+          seat_number: s.seat_number,
+          price_minor: s.price_minor,
+          state: sel.indexOf(s.id) >= 0 ? "selected" : s.status,
+        })),
     }));
   });
 
@@ -811,13 +860,15 @@ export default class Screen extends ScreenBase {
 
   total = computed(() => this.selected().reduce((a, s) => a + s.price_minor, 0));
 
-  seatsLeft = computed(() => this.seats().filter((s) => s.status === 'available').length);
+  seatsLeft = computed(() => this.seats().filter((s) => s.status === "available").length);
 
   errorList = computed(() => {
     const e = this.errors();
-    const order = ['guest_name', 'guest_email', 'guest_phone', 'consent_given', 'adult_confirmed'];
+    const order = ["guest_name", "guest_email", "guest_phone", "consent_given", "adult_confirmed"];
     const out = [];
-    for (const k of order) { if (e[k]) out.push(e[k]); }
+    for (const k of order) {
+      if (e[k]) out.push(e[k]);
+    }
     return out;
   });
 
@@ -825,13 +876,13 @@ export default class Screen extends ScreenBase {
     const s = this.holdSeconds();
     const m = Math.floor(s / 60);
     const r = s % 60;
-    return m + ':' + (r < 10 ? '0' : '') + r;
+    return m + ":" + (r < 10 ? "0" : "") + r;
   });
 
   bookedSeatSummary = computed(() => {
     const b = this.booking();
-    if (!b) return '';
-    return b.seats.map((s) => 'Row ' + s.row_label + ', Seat ' + s.seat_number).join(' · ');
+    if (!b) return "";
+    return b.seats.map((s) => "Row " + s.row_label + ", Seat " + s.seat_number).join(" · ");
   });
 
   qrMatrix = computed(() => {
@@ -840,33 +891,49 @@ export default class Screen extends ScreenBase {
     const size = 25;
     let h = 2166136261;
     const t = b.qr_token;
-    for (let i = 0; i < t.length; i++) { h = (h ^ t.charCodeAt(i)) >>> 0; h = (h * 16777619) >>> 0; }
+    for (let i = 0; i < t.length; i++) {
+      h = (h ^ t.charCodeAt(i)) >>> 0;
+      h = (h * 16777619) >>> 0;
+    }
     const rnd = () => {
-      h ^= (h << 13); h = h >>> 0;
-      h ^= (h >>> 17);
-      h ^= (h << 5); h = h >>> 0;
+      h ^= h << 13;
+      h = h >>> 0;
+      h ^= h >>> 17;
+      h ^= h << 5;
+      h = h >>> 0;
       return h / 4294967296;
     };
     const m = [];
     for (let r = 0; r < size; r++) {
       const row = [];
-      for (let c = 0; c < size; c++) { row.push(rnd() > 0.48); }
+      for (let c = 0; c < size; c++) {
+        row.push(rnd() > 0.48);
+      }
       m.push(row);
     }
     const finder = (r0, c0) => {
       for (let r = -1; r <= 7; r++) {
         for (let c = -1; c <= 7; c++) {
-          const rr = r0 + r, cc = c0 + c;
+          const rr = r0 + r,
+            cc = c0 + c;
           if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
-          if (r === -1 || r === 7 || c === -1 || c === 7) { m[rr][cc] = false; continue; }
+          if (r === -1 || r === 7 || c === -1 || c === 7) {
+            m[rr][cc] = false;
+            continue;
+          }
           const edge = r === 0 || r === 6 || c === 0 || c === 6;
           const core = r >= 2 && r <= 4 && c >= 2 && c <= 4;
           m[rr][cc] = edge || core;
         }
       }
     };
-    finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
-    for (let i = 8; i < size - 8; i++) { m[6][i] = i % 2 === 0; m[i][6] = i % 2 === 0; }
+    finder(0, 0);
+    finder(0, size - 7);
+    finder(size - 7, 0);
+    for (let i = 8; i < size - 8; i++) {
+      m[6][i] = i % 2 === 0;
+      m[i][6] = i % 2 === 0;
+    }
     return m;
   });
 
@@ -877,10 +944,19 @@ export default class Screen extends ScreenBase {
     for (const r of this.rowDefs) {
       for (let n = 1; n <= r.count; n++) {
         const id = r.label + n;
-        const status = this.bookedIds.indexOf(id) >= 0
-          ? 'booked'
-          : (this.heldIds.indexOf(id) >= 0 ? 'held' : 'available');
-        out.push({ id: id, row_label: r.label, seat_number: n, price_minor: r.price_minor, status: status });
+        const status =
+          this.bookedIds.indexOf(id) >= 0
+            ? "booked"
+            : this.heldIds.indexOf(id) >= 0
+              ? "held"
+              : "available";
+        out.push({
+          id: id,
+          row_label: r.label,
+          seat_number: n,
+          price_minor: r.price_minor,
+          status: status,
+        });
       }
     }
     return out;
@@ -888,57 +964,68 @@ export default class Screen extends ScreenBase {
 
   money(minor) {
     const v = (minor || 0) / 100;
-    return '₹' + v.toLocaleString('en-IN');
+    return "₹" + v.toLocaleString("en-IN");
   }
 
   tierFor(rowLabel) {
     const rd = this.rowDefs.filter((r) => r.label === rowLabel)[0];
-    return rd ? rd.tier : '';
+    return rd ? rd.tier : "";
   }
 
   seatBg(state) {
-    if (state === 'selected') return this.brand.accentColor;
-    if (state === 'booked') return 'rgba(255,255,255,0.06)';
-    if (state === 'held') return 'transparent';
-    return 'rgba(255,255,255,0.02)';
+    if (state === "selected") return this.brand.accentColor;
+    if (state === "booked") return "rgba(255,255,255,0.06)";
+    if (state === "held") return "transparent";
+    return "rgba(255,255,255,0.02)";
   }
 
   seatBorder(state) {
-    if (state === 'selected') return this.brand.accentColor;
-    if (state === 'booked') return 'rgba(255,255,255,0.07)';
-    if (state === 'held') return 'rgba(255,255,255,0.30)';
-    return 'rgba(255,255,255,0.18)';
+    if (state === "selected") return this.brand.accentColor;
+    if (state === "booked") return "rgba(255,255,255,0.07)";
+    if (state === "held") return "rgba(255,255,255,0.30)";
+    return "rgba(255,255,255,0.18)";
   }
 
   seatFg(state) {
-    if (state === 'selected') return this.brand.backgroundColor;
-    if (state === 'booked') return 'rgba(255,255,255,0.28)';
-    if (state === 'held') return this.brand.neutralColor;
+    if (state === "selected") return this.brand.backgroundColor;
+    if (state === "booked") return "rgba(255,255,255,0.28)";
+    if (state === "held") return this.brand.neutralColor;
     return this.brand.primaryColor;
   }
 
   seatAria(s) {
-    const base = 'Row ' + s.row_label + ', seat ' + s.seat_number + ', ' + this.money(s.price_minor) + ', ';
-    if (s.state === 'selected') return base + 'selected. Press to remove.';
-    if (s.state === 'booked') return base + 'already booked, not available.';
-    if (s.state === 'held') return base + 'on hold by another guest, not available.';
-    return base + 'available. Press to select.';
+    const base =
+      "Row " + s.row_label + ", seat " + s.seat_number + ", " + this.money(s.price_minor) + ", ";
+    if (s.state === "selected") return base + "selected. Press to remove.";
+    if (s.state === "booked") return base + "already booked, not available.";
+    if (s.state === "held") return base + "on hold by another guest, not available.";
+    return base + "available. Press to select.";
   }
 
   notify(msg, tone) {
     this.seatNotice.set(msg);
-    this.noticeTone.set(tone || 'info');
+    this.noticeTone.set(tone || "info");
   }
 
   /* ---------------------------- interactions ---------------------------- */
 
   toggleSeat(s) {
-    if (s.state === 'booked') {
-      this.notify('Row ' + s.row_label + ', Seat ' + s.seat_number + ' is already booked for this show.', 'warn');
+    if (s.state === "booked") {
+      this.notify(
+        "Row " + s.row_label + ", Seat " + s.seat_number + " is already booked for this show.",
+        "warn",
+      );
       return;
     }
-    if (s.state === 'held') {
-      this.notify('Row ' + s.row_label + ', Seat ' + s.seat_number + ' is held by another guest right now. It reopens if they don’t finish checking out.', 'warn');
+    if (s.state === "held") {
+      this.notify(
+        "Row " +
+          s.row_label +
+          ", Seat " +
+          s.seat_number +
+          " is held by another guest right now. It reopens if they don’t finish checking out.",
+        "warn",
+      );
       return;
     }
     const ids = this.selectedIds().slice();
@@ -946,51 +1033,84 @@ export default class Screen extends ScreenBase {
     if (i >= 0) {
       ids.splice(i, 1);
       this.selectedIds.set(ids);
-      this.notify('Released Row ' + s.row_label + ', Seat ' + s.seat_number + '.', 'info');
+      this.notify("Released Row " + s.row_label + ", Seat " + s.seat_number + ".", "info");
       return;
     }
     if (ids.length >= this.maxSeats) {
-      this.notify('You can book up to ' + this.maxSeats + ' seats in one booking. Remove one to swap it.', 'warn');
+      this.notify(
+        "You can book up to " + this.maxSeats + " seats in one booking. Remove one to swap it.",
+        "warn",
+      );
       return;
     }
     ids.push(s.id);
     ids.sort();
     this.selectedIds.set(ids);
-    this.notify('Added Row ' + s.row_label + ', Seat ' + s.seat_number + ' · ' + this.money(s.price_minor) + '.', 'info');
+    this.notify(
+      "Added Row " +
+        s.row_label +
+        ", Seat " +
+        s.seat_number +
+        " · " +
+        this.money(s.price_minor) +
+        ".",
+      "info",
+    );
   }
 
   removeSeat(id) {
     const ids = this.selectedIds().filter((x) => x !== id);
     this.selectedIds.set(ids);
-    this.notify('Removed Row ' + id.charAt(0) + ', Seat ' + id.slice(1) + '.', 'info');
+    this.notify("Removed Row " + id.charAt(0) + ", Seat " + id.slice(1) + ".", "info");
   }
 
   suggestBest() {
     const all = this.seats();
     for (const rd of this.rowDefs) {
-      const row = all.filter((s) => s.row_label === rd.label && s.status === 'available');
+      const row = all.filter((s) => s.row_label === rd.label && s.status === "available");
       for (let i = 0; i < row.length - 1; i++) {
         if (row[i + 1].seat_number === row[i].seat_number + 1) {
           this.selectedIds.set([row[i].id, row[i + 1].id]);
-          this.notify('Picked Row ' + rd.label + ', Seats ' + row[i].seat_number + ' and ' + row[i + 1].seat_number + ' — the best pair still free.', 'info');
+          this.notify(
+            "Picked Row " +
+              rd.label +
+              ", Seats " +
+              row[i].seat_number +
+              " and " +
+              row[i + 1].seat_number +
+              " — the best pair still free.",
+            "info",
+          );
           return;
         }
       }
     }
-    this.notify('No two adjacent seats are free. Try singles in rows F and G.', 'warn');
+    this.notify("No two adjacent seats are free. Try singles in rows F and G.", "warn");
   }
 
   refreshSeats() {
     this.syncing.set(true);
     const id = setTimeout(() => {
       this.syncing.set(false);
-      this.lastSync.set('just now');
+      this.lastSync.set("just now");
       if (!this.releasedOnce) {
         this.releasedOnce = true;
-        this.seats.update((list) => list.map((s) => (s.id === 'D7' ? { id: s.id, row_label: s.row_label, seat_number: s.seat_number, price_minor: s.price_minor, status: 'available' } : s)));
-        this.notify('Row D, Seat 7 just came back — another guest’s hold expired.', 'info');
+        this.seats.update((list) =>
+          list.map((s) =>
+            s.id === "D7"
+              ? {
+                  id: s.id,
+                  row_label: s.row_label,
+                  seat_number: s.seat_number,
+                  price_minor: s.price_minor,
+                  status: "available",
+                }
+              : s,
+          ),
+        );
+        this.notify("Row D, Seat 7 just came back — another guest’s hold expired.", "info");
       } else {
-        this.notify('Seat map is current. Nothing changed in the last minute.', 'info');
+        this.notify("Seat map is current. Nothing changed in the last minute.", "info");
       }
     }, 650);
     this.timers.push(id);
@@ -998,40 +1118,46 @@ export default class Screen extends ScreenBase {
 
   continueToDetails() {
     if (this.selectedIds().length === 0) {
-      this.notify('Pick at least one seat to continue.', 'warn');
+      this.notify("Pick at least one seat to continue.", "warn");
       return;
     }
-    this.step.set('details');
+    this.step.set("details");
     this.startHold();
   }
 
   backToSeats() {
     this.stopHold();
     this.holdExpired.set(false);
-    this.step.set('seats');
-    this.notify('Hold released. Your seats are still selected.', 'info');
+    this.step.set("seats");
+    this.notify("Hold released. Your seats are still selected.", "info");
   }
 
   restartSelection() {
     this.selectedIds.set([]);
     this.holdExpired.set(false);
-    this.step.set('seats');
-    this.notify('Those seats are back in the pool. Pick again from the map.', 'warn');
+    this.step.set("seats");
+    this.notify("Those seats are back in the pool. Pick again from the map.", "warn");
   }
 
   startHold() {
     this.stopHold();
     this.holdExpired.set(false);
     this.holdSeconds.set(420);
-    this.holdToken.set(this.randomChunk(4) + '-' + this.randomChunk(4));
+    this.holdToken.set(this.randomChunk(4) + "-" + this.randomChunk(4));
     const until = new Date(Date.now() + 420000);
-    this.holdExpiryLabel.set(until.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }));
+    this.holdExpiryLabel.set(
+      until.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }),
+    );
     this.intervalId = setInterval(() => {
       const next = this.holdSeconds() - 1;
       if (next <= 0) {
         this.holdSeconds.set(0);
         this.stopHold();
-        this.expiredSeatsLabel.set(this.selected().map((s) => 'Row ' + s.row_label + ', Seat ' + s.seat_number).join(' and ') || 'your seats');
+        this.expiredSeatsLabel.set(
+          this.selected()
+            .map((s) => "Row " + s.row_label + ", Seat " + s.seat_number)
+            .join(" and ") || "your seats",
+        );
         this.selectedIds.set([]);
         this.holdExpired.set(true);
       } else {
@@ -1048,33 +1174,41 @@ export default class Screen extends ScreenBase {
   }
 
   randomChunk(n) {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let out = '';
-    for (let i = 0; i < n; i++) { out += alphabet.charAt(Math.floor(Math.random() * alphabet.length)); }
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let out = "";
+    for (let i = 0; i < n; i++) {
+      out += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    }
     return out;
   }
 
   makeReference() {
-    let ref = '';
-    do { ref = 'MEH-' + this.randomChunk(6); } while (this.usedReferences.indexOf(ref) >= 0);
+    let ref = "";
+    do {
+      ref = "MEH-" + this.randomChunk(6);
+    } while (this.usedReferences.indexOf(ref) >= 0);
     this.usedReferences.push(ref);
     return ref;
   }
 
   submitBooking() {
     const errs = {};
-    const name = (this.guestName() || '').trim();
-    const email = (this.guestEmail() || '').trim();
-    const phone = (this.guestPhone() || '').trim();
-    const digits = phone.replace(/[^0-9]/g, '');
+    const name = (this.guestName() || "").trim();
+    const email = (this.guestEmail() || "").trim();
+    const phone = (this.guestPhone() || "").trim();
+    const digits = phone.replace(/[^0-9]/g, "");
 
-    if (!name) errs.guest_name = 'Enter the name that should appear on the ticket.';
-    if (!email) errs.guest_email = 'We need an email to send your reference and QR ticket.';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) errs.guest_email = 'That email doesn’t look right — check for a missing @ or domain.';
-    if (!phone) errs.guest_phone = 'Enter a mobile number the venue can reach on the night.';
-    else if (digits.length < 10 || digits.length > 13) errs.guest_phone = 'That number isn’t 10 digits — check it and try again.';
-    if (!this.consentGiven()) errs.consent_given = 'Consent is required: we can’t create a booking without it.';
-    if (!this.adultConfirmed()) errs.adult_confirmed = 'Bookings are for adults only — confirm you are 18 or older.';
+    if (!name) errs.guest_name = "Enter the name that should appear on the ticket.";
+    if (!email) errs.guest_email = "We need an email to send your reference and QR ticket.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
+      errs.guest_email = "That email doesn’t look right — check for a missing @ or domain.";
+    if (!phone) errs.guest_phone = "Enter a mobile number the venue can reach on the night.";
+    else if (digits.length < 10 || digits.length > 13)
+      errs.guest_phone = "That number isn’t 10 digits — check it and try again.";
+    if (!this.consentGiven())
+      errs.consent_given = "Consent is required: we can’t create a booking without it.";
+    if (!this.adultConfirmed())
+      errs.adult_confirmed = "Bookings are for adults only — confirm you are 18 or older.";
 
     if (Object.keys(errs).length) {
       this.errors.set(errs);
@@ -1088,35 +1222,49 @@ export default class Screen extends ScreenBase {
     const id = setTimeout(() => {
       const ref = this.makeReference();
       const ids = this.selectedIds();
-      this.seats.update((list) => list.map((s) => (ids.indexOf(s.id) >= 0
-        ? { id: s.id, row_label: s.row_label, seat_number: s.seat_number, price_minor: s.price_minor, status: 'booked' }
-        : s)));
+      this.seats.update((list) =>
+        list.map((s) =>
+          ids.indexOf(s.id) >= 0
+            ? {
+                id: s.id,
+                row_label: s.row_label,
+                seat_number: s.seat_number,
+                price_minor: s.price_minor,
+                status: "booked",
+              }
+            : s,
+        ),
+      );
       const now = new Date();
-      const stamp = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) +
-        ', ' + now.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+      const stamp =
+        now.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) +
+        ", " +
+        now.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
       this.booking.set({
         reference: ref,
-        qr_token: 'qr_' + ref + '_' + this.randomChunk(8),
+        qr_token: "qr_" + ref + "_" + this.randomChunk(8),
         guest_name: this.guestName().trim(),
         guest_email: this.guestEmail().trim(),
         guest_phone: this.guestPhone().trim(),
         seats: picked,
         total_minor: amount,
-        status: 'confirmed',
+        status: "confirmed",
         consent_notice_version: this.consentVersion,
         consent_at: stamp,
-        created_at: stamp
+        created_at: stamp,
       });
       this.submitting.set(false);
       this.stopHold();
-      this.step.set('ticket');
+      this.step.set("ticket");
     }, 950);
     this.timers.push(id);
   }
 
   ngOnDestroy() {
     this.stopHold();
-    for (const t of this.timers) { clearTimeout(t); }
+    for (const t of this.timers) {
+      clearTimeout(t);
+    }
     this.timers = [];
   }
 }
