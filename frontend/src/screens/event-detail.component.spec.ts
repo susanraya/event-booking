@@ -174,9 +174,9 @@ describe("Event detail — live wiring (US-003-1)", () => {
     const fixture = await setup({ id: "evt_missing" });
     const text: string = fixture.nativeElement.textContent;
     expect(text).toContain("isn't available");
-    const selectSeatsButton = Array.from(
-      fixture.nativeElement.querySelectorAll("button"),
-    ).find((b: HTMLButtonElement) => b.textContent?.trim() === "Select seats");
+    const selectSeatsButton = Array.from(fixture.nativeElement.querySelectorAll("button")).find(
+      (b: HTMLButtonElement) => b.textContent?.trim() === "Select seats",
+    );
     expect(selectSeatsButton).toBeFalsy();
   });
 
