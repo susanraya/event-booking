@@ -1,0 +1,54 @@
+{
+  "key": {
+    "app_design_id": "3ea04e28-3e0c-42e6-90e2-a8ccaf12844c",
+    "app_design_version": 1,
+    "architecture_document_id": "1a0880ff-c0fd-4592-8731-e979a7d6abfb",
+    "architecture_version": 1
+  },
+  "outcome": "prepared",
+  "packages": [
+    {
+      "ecosystem": "maven",
+      "error": "invalid maven name: expected groupId:artifactId",
+      "name": "spring-boot-starter-mail",
+      "status": "skipped",
+      "version": ""
+    },
+    {
+      "ecosystem": "maven",
+      "error": "invalid maven name: expected groupId:artifactId",
+      "name": "spring-boot-starter-security",
+      "status": "skipped",
+      "version": ""
+    },
+    {
+      "ecosystem": "maven",
+      "error": "Not in the environment after the install.",
+      "name": "io.jsonwebtoken:jjwt-api",
+      "status": "failed",
+      "version": "0.12.6"
+    },
+    {
+      "ecosystem": "maven",
+      "installed_version": "3.5.3",
+      "name": "com.google.zxing:core",
+      "status": "installed",
+      "version": "3.5.3"
+    },
+    {
+      "ecosystem": "maven",
+      "installed_version": "3.5.3",
+      "name": "com.google.zxing:javase",
+      "status": "installed",
+      "version": "3.5.3"
+    },
+    {
+      "ecosystem": "npm",
+      "error": "already provided by the scaffold",
+      "name": "@zxing/ngx-scanner",
+      "status": "skipped",
+      "version": ">=19.0.0"
+    }
+  ],
+  "prepared_by_run": "08a3838e-248c-466d-a428-de24b94f80df"
+}
