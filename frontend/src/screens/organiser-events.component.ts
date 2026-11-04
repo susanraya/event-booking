@@ -1530,42 +1530,58 @@ export default class Screen extends ScreenBase {
     }
   }
 
-  publish() {
+  async publish() {
     const e = this.selected();
     if (!e) {
       return;
     }
-    const total = e.rows.reduce((s, r) => s + (Number(r.seats) || 0), 0);
-    if (total === 0) {
+    this.publishError.set("");
+    try {
+      const updated = await apiFetch(`/api/organiser/events/${e.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "published" }),
+      });
+      this.updateSelected({ status: updated.status || "published", note: "Published just now" });
+      this.say(
+        "ok",
+        e.title + " is live. It now appears in public browsing and search.",
+      );
+    } catch (err) {
+      if (this.handleUnauthorized(err)) return;
       this.publishError.set(
-        "This event has no seating layout, so attendees would have nothing to choose. Add at least one row of seats, save the layout, then publish.",
+        err instanceof ApiError ? err.message : "The event could not be published.",
       );
       this.tab.set("seating");
-      return;
     }
-    this.publishError.set("");
-    this.updateSelected({ status: "published", note: "Published just now" });
-    this.say(
-      "ok",
-      e.title +
-        " is live. It now appears in public browsing and search, and its " +
-        total +
-        " seats are bookable.",
-    );
   }
 
-  unpublish() {
+  async unpublish() {
     const e = this.selected();
     if (!e) {
       return;
     }
     this.confirmUnpublish.set(false);
-    this.updateSelected({ status: "draft", note: "Unpublished just now, hidden from the public" });
-    this.say(
-      "ok",
-      e.title +
-        " is unpublished. It has gone from public browsing and search, and no new bookings can be made. Existing bookings are untouched.",
-    );
+    this.publishError.set("");
+    try {
+      const updated = await apiFetch(`/api/organiser/events/${e.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "draft" }),
+      });
+      this.updateSelected({
+        status: updated.status || "draft",
+        note: "Unpublished just now, hidden from the public",
+      });
+      this.say(
+        "ok",
+        e.title +
+          " is unpublished. It has gone from public browsing and search, and no new bookings can be made. Existing bookings are untouched.",
+      );
+    } catch (err) {
+      if (this.handleUnauthorized(err)) return;
+      this.publishError.set(
+        err instanceof ApiError ? err.message : "The event could not be unpublished.",
+      );
+    }
   }
 
   askRemove(key) {
