@@ -6,7 +6,7 @@ import { ActivatedRoute } from "@angular/router";
 
 import { ScreenBase } from "@/lib/screen-base";
 import { UI_KIT } from "@/lib/ui";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 const template = `
 <style>
   .vt-focus:focus-visible{outline:2px solid var(--vt-accent, #8fae8b);outline-offset:2px;border-radius:4px}
@@ -36,7 +36,11 @@ const template = `
       </button>
     </nav>
 
-    @if (!isPublished()) {
+    @if (status() === 'loading') {
+      <section class="mx-auto max-w-xl py-16 text-center vt-fade" role="status" aria-live="polite">
+        <p class="text-sm leading-relaxed" [style.color]="brand.neutralColor">Loading this event…</p>
+      </section>
+    } @else if (status() === 'notfound') {
       <section class="mx-auto max-w-xl py-16 text-center vt-fade">
         <span class="inline-flex h-11 w-11 items-center justify-center rounded-full border"
               [style.border-color]="hairline" [style.background-color]="surface">
@@ -44,7 +48,7 @@ const template = `
         </span>
         <h1 class="mt-6 text-3xl sm:text-4xl" [style.font-family]="brand.fontHeading">This event isn't available</h1>
         <p class="mt-4 text-sm leading-relaxed" [style.color]="brand.neutralColor">
-          Mehfil Live has unpublished this event, so it can't be viewed or booked right now.
+          This event can't be viewed or booked right now.
           Any booking you already hold stays valid — look it up with your reference and email.
         </p>
         <div class="mt-8 flex flex-wrap justify-center gap-3">
@@ -53,6 +57,20 @@ const template = `
           <button uiButton variant="secondary" class="vt-focus" [style.background-color]="'transparent'"
                   [style.border-color]="hairline" [style.color]="brand.primaryColor"
                   (click)="navigate('my-booking')">Find my booking</button>
+        </div>
+      </section>
+    } @else if (status() === 'error') {
+      <section class="mx-auto max-w-xl py-16 text-center vt-fade" role="alert">
+        <h1 class="mt-6 text-3xl sm:text-4xl" [style.font-family]="brand.fontHeading">We couldn't load this event</h1>
+        <p class="mt-4 text-sm leading-relaxed" [style.color]="brand.neutralColor">
+          Something went wrong reaching the ticket office. Please check your connection and try again.
+        </p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <button uiButton class="vt-focus vt-primary" [style.background-color]="brand.accentColor"
+                  [style.color]="brand.backgroundColor" (click)="loadEvent()">Try again</button>
+          <button uiButton variant="secondary" class="vt-focus" [style.background-color]="'transparent'"
+                  [style.border-color]="hairline" [style.color]="brand.primaryColor"
+                  (click)="navigate('events')">Browse events</button>
         </div>
       </section>
     } @else {
@@ -85,11 +103,24 @@ const template = `
           <ui-stat label="Tickets from" [value]="priceLabel()" hint="Rear stalls, rows G–H"></ui-stat>
         </div>
         <div class="px-6 py-5" [style.border-color]="hairlineSoft" [style.font-variant-numeric]="'tabular-nums'">
-          <ui-stat label="Seats available" [value]="seatsLeft() + ' of 96'" hint="Updated {{ lastSync() }}"></ui-stat>
+          <ui-stat label="Seats available" [value]="seatsAvailable() + ''" hint="Updated {{ lastSync() }}"></ui-stat>
         </div>
         <div class="px-6 py-5" [style.border-color]="hairlineSoft" [style.font-variant-numeric]="'tabular-nums'">
           <ui-stat label="Hold window" value="7 min" hint="Seats are locked while you check out"></ui-stat>
         </div>
+      </div>
+
+      <div class="mb-10">
+        @if (seatsAvailable() > 0) {
+          <button uiButton class="vt-focus vt-primary" [style.background-color]="brand.accentColor"
+                  [style.color]="brand.backgroundColor" (click)="selectSeats()">Select seats</button>
+        } @else {
+          <button uiButton class="vt-focus" disabled [style.background-color]="'rgba(255,255,255,0.08)'"
+                  [style.color]="brand.neutralColor" aria-disabled="true">Select seats</button>
+          <p class="mt-3 text-sm leading-relaxed" [style.color]="brand.neutralColor">
+            This event is sold out — there are no seats left to book right now.
+          </p>
+        }
       </div>
 
       <ol class="mb-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] uppercase tracking-[0.18em]">
@@ -235,37 +266,9 @@ const template = `
                     @switch (infoTab()) {
                       @case ('about') {
                         <p class="max-w-prose">{{ event().description }}</p>
-                        <p class="mt-4 max-w-prose">
-                          Support from Maati Baani at 7:30 pm sharp. Kabir Café on stage at 8:25 pm.
-                        </p>
-                        <h3 class="mt-6 text-[11px] uppercase tracking-[0.2em]" [style.color]="brand.primaryColor">Line-up</h3>
-                        <ul class="mt-3 space-y-1.5">
-                          @for (p of lineup; track p.name) {
-                            <li class="flex items-baseline justify-between gap-6 border-b pb-1.5" [style.border-color]="hairlineSoft">
-                              <span [style.color]="brand.primaryColor">{{ p.name }}</span>
-                              <span class="text-xs">{{ p.role }}</span>
-                            </li>
-                          }
-                        </ul>
                       }
                       @case ('venue') {
-                        <address class="not-italic max-w-prose">
-                          Royal Opera House<br>Mathew Road, Girgaon<br>Mumbai 400004
-                        </address>
-                        <ul class="mt-5 space-y-2.5 max-w-prose">
-                          <li class="flex gap-3">
-                            <ui-icon name="Clock" class="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true"></ui-icon>
-                            Doors 6:45 pm. No re-entry after 9:00 pm.
-                          </li>
-                          <li class="flex gap-3">
-                            <ui-icon name="Users" class="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true"></ui-icon>
-                            Step-free access via the Mathew Road entrance. Two wheelchair spaces in Row A — call the box office to reserve.
-                          </li>
-                          <li class="flex gap-3">
-                            <ui-icon name="Home" class="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true"></ui-icon>
-                            Charni Road station is a six-minute walk. Paid parking on Opera House Lane.
-                          </li>
-                        </ul>
+                        <address class="not-italic max-w-prose">{{ event().venue }}</address>
                       }
                       @case ('tickets') {
                         <table uiTable class="w-full" [style.font-variant-numeric]="'tabular-nums'">
@@ -689,39 +692,50 @@ export default class Screen extends ScreenBase {
 
   private readonly route = inject(ActivatedRoute);
 
-  event = signal({
-    id: "evt_8821",
-    organiser: "Mehfil Live",
-    title: "Kabir Café — Dhai Akhar Tour",
-    venue: "Royal Opera House, Girgaon, Mumbai",
-    start_datetime: "Saturday 22 November 2026 · 7:30 pm",
-    doors: "6:45 pm",
-    is_free: false,
-    price_minor: 95000,
-    currency: "INR",
-    status: "published",
-    cancellation_policy:
-      "Cancel up to 48 hours before showtime for a full refund, settled by Mehfil Live outside the app.",
-    description:
-      "Kabir Café bring the Dhai Akhar tour to the Royal Opera House for one night — Kabir’s dohas set to four-part harmony, upright bass and a borrowed dholak. The 2026 set adds three new pieces from the Bhanwara sessions, and the band close, as they always do, with Halke Halke.",
-  });
+  // Event id comes from the route, never from component state (AC-006 to AC-008).
+  private readonly eventId = this.route.snapshot.paramMap.get("id");
+
+  // No seeded sample event: starts empty, filled only from GET /api/events/{id}.
+  event = signal(null);
+  status = signal("loading"); // loading | ready | notfound | error
 
   // Price or Free, read from the API (AC-039, AC-040). Shown in the detail stat and the
   // "about this evening" summary -- the two booking-flow headings that quote a price.
-  priceLabel = computed(() =>
-    this.event().is_free ? "Free" : this.money(this.event().price_minor),
-  );
+  priceLabel = computed(() => {
+    const e = this.event();
+    if (!e) return "";
+    return e.is_free ? "Free" : this.money(e.price_minor);
+  });
+
+  // Seats left to book, read straight from the API (AC-007) -- not derived from the
+  // local seat-map mock below, which stands in for a future seat-selection screen.
+  seatsAvailable = computed(() => this.event()?.seats_available ?? 0);
 
   constructor() {
     super();
-    const id = this.route.snapshot.paramMap.get("id") ?? this.event().id;
-    apiFetch(`/api/events/${id}`)
+    this.loadEvent();
+  }
+
+  loadEvent() {
+    this.status.set("loading");
+    apiFetch(`/api/events/${this.eventId}`)
       .then((fetched) => {
-        this.event.set({ ...this.event(), ...fetched });
+        this.event.set(fetched);
+        this.status.set("ready");
       })
-      .catch(() => {
-        // Leave the fallback event in place -- the screen still renders.
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 404) {
+          this.status.set("notfound");
+        } else {
+          this.status.set("error");
+        }
       });
+  }
+
+  // Routes into seat selection for this event id (AC-007). Seat selection lives in this
+  // same screen, scoped to the id carried by the route.
+  selectSeats() {
+    this.step.set("seats");
   }
 
   lineup = [
@@ -827,7 +841,7 @@ export default class Screen extends ScreenBase {
 
   /* ------------------------------ derived ------------------------------- */
 
-  isPublished = computed(() => this.event().status === "published");
+  isPublished = computed(() => this.status() === "ready");
 
   stepIndex = computed(() => {
     const s = this.step();
